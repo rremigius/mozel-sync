@@ -1,7 +1,7 @@
-import Mozel, {collection, number, property, string} from "../../Mozel";
 import {MozelWatcher} from "../src/MozelWatcher";
 import {assert} from "chai";
-import Collection from "../../Collection";
+import {number, string} from "mozel/dist/Mozel";
+import Mozel, {collection, Collection, property} from "mozel";
 
 describe("MozelWatcher", () => {
 	it("tracks all changes in the given Mozel's properties", () => {

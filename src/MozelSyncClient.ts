@@ -1,8 +1,8 @@
 import {io, Socket} from "socket.io-client"
-import Log from "../log";
-import {call, isNumber, mapValues} from "../../utils";
 import MozelSync from "./MozelSync";
-import Mozel from "../../Mozel";
+import Log from "log-control";
+import {call, isNumber} from "./utils";
+import Mozel from "mozel";
 
 const log = Log.instance("mozel-sync-client");
 

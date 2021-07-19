@@ -1,11 +1,11 @@
 import {v4 as uuid} from "uuid";
-import PropertyWatcher from "../../PropertyWatcher";
-import {call, findAllDeep, forEach, get, isArray, isEqual, isPlainObject, mapValues, values} from "../../utils";
-import Mozel, {shallow} from "../../Mozel";
-import Collection from "../../Collection";
 import EventInterface from "event-interface-mixin";
 import Log from "log-control";
 import {alphanumeric, isPrimitive} from "validation-kit";
+import {call, findAllDeep, forEach, get, isArray, isPlainObject} from "./utils";
+import PropertyWatcher from "mozel/dist/PropertyWatcher";
+import Mozel, {Collection} from "mozel";
+import {shallow} from "mozel/dist/Mozel";
 
 const log = Log.instance("mozel-watcher");
 

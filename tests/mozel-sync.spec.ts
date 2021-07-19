@@ -1,6 +1,7 @@
 import {assert} from 'chai';
 import MozelSync from "../src/MozelSync";
 import Mozel, {collection, Collection, property, reference, Registry} from "mozel";
+import {string} from "mozel/dist/Mozel";
 
 describe("MozelSync", () => {
 	describe("getUpdates", () => {

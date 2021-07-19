@@ -1,8 +1,9 @@
 import {assert} from "chai";
 import MozelSyncServer from "../src/MozelSyncServer";
 import MozelSyncClient from "../src/MozelSyncClient";
-import Mozel, {collection, Collection, property, string} from "mozel";
 import {interval} from "../src/utils";
+import {string} from "mozel/dist/Mozel";
+import Mozel, {collection, Collection, property} from "mozel";
 
 describe("MozelSyncServer", () => {
 	describe("onUserConnected", () => {
