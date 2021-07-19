@@ -1,0 +1,26 @@
+{
+  "name": "mozel-sync",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Remi Alkemade <info@remialkemade.nl> (https://www.remialkemade.nl)",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/mocha": "^8.2.3",
+    "@types/uuid": "^8.3.1",
+    "mocha": "^9.0.2",
+    "ts-node": "^10.1.0",
+    "typescript": "^4.3.5"
+  },
+  "dependencies": {
+    "event-interface-mixin": "^0.1.3",
+    "log-control": "0.0.2",
+    "mozel": "git+https://github.com/rremigius/mozel.git",
+    "uuid": "^8.3.2",
+    "validation-kit": "0.0.7"
+  }
+}
