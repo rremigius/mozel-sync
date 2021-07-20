@@ -2,6 +2,7 @@ import {assert} from 'chai';
 import MozelSync from "../src/MozelSync";
 import Mozel, {collection, Collection, property, reference, Registry} from "mozel";
 import {string} from "mozel/dist/Mozel";
+import {interval} from "mozel/dist/utils";
 
 describe("MozelSync", () => {
 	describe("getUpdates", () => {
@@ -40,7 +41,7 @@ describe("MozelSync", () => {
 				foo: {gid: root.foo!.foo.gid, name: 'root.foo.foo', foo: undefined}
 			});
 		});
-		it("returns only a list of GIDs for changed collections", () => {
+		it("returns only a list of GIDs for changed collections", async () => {
 			class Foo extends Mozel {
 				@property(String)
 				declare name?:string;
@@ -57,6 +58,8 @@ describe("MozelSync", () => {
 
 			foo.foos.get(1)!.name = 'RootFoos1-changed';
 			foo.foos.remove({gid: 'root.foos.0'});
+
+			await interval(0); // wait for collection changes to aggregate
 
 			const updates = sync.commit();
 
@@ -143,7 +146,7 @@ describe("MozelSync", () => {
 			assert.equal(root2.foo!.name, 'rootFoo');
 			assert.equal(root2.foos.get(0)!.name, 'rootFoos0');
 		});
-		it("can synchronize Collection item removal", () => {
+		it("can synchronize Collection item removal", async () => {
 			class Foo extends Mozel {
 				@collection(Foo)
 				declare foos:Collection<Foo>;
@@ -158,6 +161,8 @@ describe("MozelSync", () => {
 			sync2.start();
 
 			foo1.foos.removeIndex(0);
+
+			await interval(0); // wait for collection changes to aggregate
 			sync2.merge(sync1.commit());
 
 			assert.deepEqual(foo1.$export(), foo2.$export(), "Mozels synchronized");
@@ -213,7 +218,7 @@ describe("MozelSync", () => {
 		});
 	});
 	describe("2-way synchronization getUpdates -> applyUpdates", () => {
-		it("can be applied without causing infinite loops", () => {
+		it("can be applied without causing infinite loops", async () => {
 			class Foo extends Mozel {
 				@property(String)
 				declare name?:string;
@@ -248,6 +253,8 @@ describe("MozelSync", () => {
 			model1.name = 'Root-2';
 			model1.foo!.name = 'RootFoo-2';
 			model1.foos.set(1, {gid: 'root.foos.1-2', name: 'RootFoos1-2'});
+
+			await interval(0);
 
 			sync2.merge(sync1.commit());
 			sync1.merge(sync2.commit());

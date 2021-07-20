@@ -2,6 +2,7 @@ import {MozelWatcher} from "../src/MozelWatcher";
 import {assert} from "chai";
 import {number, string} from "mozel/dist/Mozel";
 import Mozel, {collection, Collection, property} from "mozel";
+import {interval} from "mozel/dist/utils";
 
 describe("MozelWatcher", () => {
 	it("tracks all changes in the given Mozel's properties", () => {
@@ -28,7 +29,7 @@ describe("MozelWatcher", () => {
 			'name': 'root3'
 		});
 	});
-	it("tracks changes to a Mozel's collection", () => {
+	it("tracks changes to a Mozel's collection", async () => {
 		class Foo extends Mozel {
 			@property(String)
 			declare name?:string;
@@ -43,14 +44,17 @@ describe("MozelWatcher", () => {
 		watcher.start();
 
 		foo.foos.get(0)!.name = 'rootFoo2';
-		assert.isEmpty(watcher.changes, "change to collection item does is not recorded");
+		assert.isEmpty(watcher.changes, "change to collection item is not recorded");
 
 		foo.foos.set(0, {gid: 'replaced'}, true);
+
+		await interval(0);
+
 		assert.deepEqual(watcher.changes, {
 			foos: foo.foos
 		});
 	});
-	it("for Mozel properties or Collections, only gid is included, unless it is a new Mozel", () => {
+	it("for Mozel properties or Collections, only gid is included, unless it is a new Mozel", async () => {
 		class Foo extends Mozel {
 			@string()
 			declare name?:string;
@@ -72,6 +76,7 @@ describe("MozelWatcher", () => {
 		root.foos.get(0)!.name = 'RootFoos0'
 		root.foos.set(1, {gid: 'root.foos.1', foo: {gid: 'root.foos.1.foo', name: 'RootFoos1Foo'}});
 
+		await interval(0);
 		const update = watcher.commit();
 		assert.deepEqual(update!.changes, {
 			'foo': { gid: 'root.foo-2', name: 'RootFoo-2', foo: undefined, foos: [] },
@@ -81,7 +86,7 @@ describe("MozelWatcher", () => {
 			]
 		});
 	});
-	it("does not include updates identical to the ones already received", () => {
+	it("does not include updates identical to the ones already received", async () => {
 		class Foo extends Mozel {
 			@string()
 			declare name?:string;
@@ -102,6 +107,8 @@ describe("MozelWatcher", () => {
 		model1.name = 'Root-1';
 		model1.$set('foo', {gid: 'root.foo', name: 'RootFoo-2'});
 		model1.foos.set(0, {gid: 'root.foos.0'});
+
+		await interval(0);
 
 		const update1 = watcher1.commit();
 		watcher2.merge(update1!);
