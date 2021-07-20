@@ -2,7 +2,6 @@ import { alphanumeric } from "validation-kit";
 import EventInterface from "event-interface-mixin";
 import { Commit, MozelWatcher } from "./MozelWatcher";
 import Mozel, { Registry } from "mozel";
-import { MozelData } from "mozel/dist/Mozel";
 export declare class MozelSyncNewCommitsEvent {
     commits: Record<string, Commit>;
     constructor(commits: Record<string, Commit>);
@@ -36,9 +35,12 @@ export default class MozelSync {
         historyLength?: number;
         autoCommit?: number;
     });
-    createFullState(): import("mozel/dist/Mozel").Data;
+    createFullState(): {
+        [x: string]: Commit;
+        [x: number]: Commit;
+    };
     hasChanges(): boolean;
-    setFullState(state: MozelData<any>): void;
+    setFullState(state: Record<alphanumeric, Commit>): Record<alphanumeric, Commit>;
     commit(): Record<alphanumeric, Commit>;
     /**
      * Merges the given updates for each MozelWatcher

@@ -35,13 +35,23 @@ export default class MozelSyncServer {
             // Listen to incoming updates
             socket.on('push', (commits) => {
                 log.log(`Received commits from client '${socket.id}':`, Object.keys(commits));
-                const merged = this.sync.merge(commits);
-                log.log(`Pushing merged commit from client '${socket.id}' to all clients:`, Object.keys(commits));
-                socket.broadcast.emit('push', merged); // send merged update to others
+                try {
+                    const merged = this.sync.merge(commits);
+                    log.log(`Pushing merged commit from client '${socket.id}' to all clients:`, Object.keys(commits));
+                    socket.broadcast.emit('push', merged); // send merged update to others
+                }
+                catch (e) {
+                    log.error(e);
+                }
             });
             socket.on('full-state', (data) => {
                 log.log(`Received full state from client '${socket.id}.'`);
-                this.sync.setFullState(data);
+                try {
+                    this.sync.setFullState(data);
+                }
+                catch (e) {
+                    log.error(e);
+                }
                 log.log(`Sending full state from client '${socket.id} to all clients.'`);
                 socket.broadcast.emit('full-state', data);
             });

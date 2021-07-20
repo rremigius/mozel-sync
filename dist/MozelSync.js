@@ -2,7 +2,7 @@ import EventInterface from "event-interface-mixin";
 import { v4 as uuid } from "uuid";
 import Log from "./log";
 import { MozelWatcher } from "./MozelWatcher";
-import { call, find, forEach, isNumber, throttle, values } from "./utils";
+import { call, find, forEach, isNumber, mapValues, throttle, values } from "./utils";
 const log = Log.instance("mozel-sync");
 export class MozelSyncNewCommitsEvent {
     commits;
@@ -54,13 +54,13 @@ export default class MozelSync {
         }
     }
     createFullState() {
-        return this.model.$export();
+        return mapValues(this.watchers, watcher => watcher.createFullState());
     }
     hasChanges() {
         return !!find(this.watchers, watcher => watcher.hasChanges());
     }
     setFullState(state) {
-        return this.model.$setData(state);
+        return this.merge(state);
     }
     commit() {
         const updates = {};
