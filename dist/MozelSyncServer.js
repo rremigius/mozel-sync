@@ -1,6 +1,7 @@
 import { Namespace, Server } from "socket.io";
 import MozelSync from "./MozelSync";
 import Log from "./log";
+import { OutdatedUpdateError } from "./MozelWatcher";
 const log = Log.instance("mozel-sync-server");
 export default class MozelSyncServer {
     io;
@@ -42,6 +43,10 @@ export default class MozelSyncServer {
                 }
                 catch (e) {
                     log.error(e);
+                    if (e instanceof OutdatedUpdateError) {
+                        log.log(`Sending full state to client '${socket.id}' after error in merge.`);
+                        socket.emit('full-state', this.sync.createFullState());
+                    }
                 }
             });
             socket.on('full-state', (data) => {

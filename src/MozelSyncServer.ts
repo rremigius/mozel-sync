@@ -3,7 +3,7 @@ import MozelSync from "./MozelSync";
 import Log from "./log";
 import {isNumber} from "./utils";
 import Mozel from "mozel";
-import {Commit} from "./MozelWatcher";
+import {Commit, OutdatedUpdateError} from "./MozelWatcher";
 import {Data, MozelData} from "mozel/dist/Mozel";
 
 const log = Log.instance("mozel-sync-server");
@@ -52,6 +52,10 @@ export default class MozelSyncServer {
 					socket.broadcast.emit('push', merged); // send merged update to others
 				} catch (e) {
 					log.error(e);
+					if(e instanceof OutdatedUpdateError) {
+						log.log(`Sending full state to client '${socket.id}' after error in merge.`);
+						socket.emit('full-state', this.sync.createFullState());
+					}
 				}
 			});
 			socket.on('full-state', (data:MozelData<any>) => {
