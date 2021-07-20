@@ -7,9 +7,9 @@ describe("MozelWatcher", () => {
 	it("tracks all changes in the given Mozel's properties", () => {
 		class Foo extends Mozel {
 			@property(String)
-			name?:string;
+			declare name?:string;
 			@property(Foo)
-			foo?:Foo;
+			declare foo?:Foo;
 		}
 		const root = Foo.create<Foo>({
 			gid: 'root',
@@ -31,9 +31,9 @@ describe("MozelWatcher", () => {
 	it("tracks changes to a Mozel's collection", () => {
 		class Foo extends Mozel {
 			@property(String)
-			name?:string;
+			declare name?:string;
 			@collection(Foo)
-			foos!:Collection<Foo>
+			declare foos:Collection<Foo>
 		}
 		const foo = Foo.create<Foo>({
 			gid: 'root',
@@ -53,11 +53,11 @@ describe("MozelWatcher", () => {
 	it("for Mozel properties or Collections, only gid is included, unless it is a new Mozel", () => {
 		class Foo extends Mozel {
 			@string()
-			name?:string;
+			declare name?:string;
 			@property(Foo)
-			foo?:Foo;
+			declare foo?:Foo;
 			@collection(Foo)
-			foos!:Collection<Foo>
+			declare foos:Collection<Foo>
 		}
 		const root = Foo.create<Foo>({
 			gid: 'root',
@@ -84,13 +84,13 @@ describe("MozelWatcher", () => {
 	it("does not include updates identical to the ones already received", () => {
 		class Foo extends Mozel {
 			@string()
-			name?:string;
+			declare name?:string;
 			@number()
-			number?:number;
+			declare number?:number;
 			@property(Foo)
-			foo?:Foo;
+			declare foo?:Foo;
 			@collection(Foo)
-			foos!:Collection<Foo>;
+			declare foos:Collection<Foo>;
 		}
 		const model1 = Foo.create<Foo>({gid: 'root'});
 		const model2 = Foo.create<Foo>({gid: 'root'});
@@ -123,9 +123,9 @@ describe("MozelWatcher", () => {
 		it("returns an update with the merge results (without overridden changes)", () => {
 			class Foo extends Mozel {
 				@string()
-				foo?:string;
+				declare foo?:string;
 				@string()
-				bar?:string;
+				declare bar?:string;
 			}
 			const model1 = Foo.create<Foo>();
 			const model2 = Foo.create<Foo>();

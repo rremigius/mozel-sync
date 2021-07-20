@@ -48,7 +48,7 @@ describe("MozelSyncServer", () => {
 		it("when server model is changed, updates are emitted to client", async () => {
 			class Foo extends Mozel {
 				@property(String)
-				foo?:string;
+				declare foo?:string;
 			}
 			const init = {gid: 'root'}
 			const model = Foo.create<Foo>(init);
@@ -74,7 +74,7 @@ describe("MozelSyncServer", () => {
 		it("when client model is changed, updates are emitted to the server", async () => {
 			class Foo extends Mozel {
 				@property(String)
-				foo?:string;
+				declare foo?:string;
 			}
 			const init = {gid: 'root'}
 			const model = Foo.create<Foo>(init);
@@ -102,9 +102,9 @@ describe("MozelSyncServer", () => {
 		it("full updates are sent to client on connection", async () => {
 			class Foo extends Mozel {
 				@string()
-				name?:string;
+				declare name?:string;
 				@property(Foo)
-				foo?:Foo;
+				declare foo?:Foo;
 			}
 			const serverModel = Foo.create<Foo>({
 				gid: 'root',
@@ -126,11 +126,11 @@ describe("MozelSyncServer", () => {
 		it("models are synced between all clients and server", async () => {
 			class Foo extends Mozel {
 				@string()
-				name?:string;
+				declare name?:string;
 				@property(Foo)
-				foo?:Foo;
+				declare foo?:Foo;
 				@collection(Foo)
-				foos!:Collection<Foo>
+				declare foos:Collection<Foo>
 			}
 			const serverModel = Foo.create<Foo>({
 				gid: 'root',

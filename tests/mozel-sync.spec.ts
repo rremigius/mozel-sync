@@ -8,9 +8,9 @@ describe("MozelSync", () => {
 		it("returns all changes to all registered Mozels", () => {
 			class Foo extends Mozel {
 				@property(String)
-				name?:string;
+				declare name?:string;
 				@property(Foo)
-				foo?:Foo;
+				declare foo?:Foo;
 			}
 			const root = Foo.create<Foo>({
 				gid: 'root',
@@ -43,9 +43,9 @@ describe("MozelSync", () => {
 		it("returns only a list of GIDs for changed collections", () => {
 			class Foo extends Mozel {
 				@property(String)
-				name?:string;
+				declare name?:string;
 				@collection(Foo)
-				foos!:Collection<Foo>
+				declare foos:Collection<Foo>
 			}
 			const foo = Foo.create<Foo>({
 				gid: 'root',
@@ -71,13 +71,13 @@ describe("MozelSync", () => {
 		it("returns only an object with GID for nested mozels, except for new child mozels", () => {
 			class Foo extends Mozel {
 				@property(String)
-				name?: string;
+				declare name?: string;
 				@property(Foo)
-				newFoo?:Foo;
+				declare newFoo?:Foo;
 				@property(Foo)
-				changedFoo?:Foo;
+				declare changedFoo?:Foo;
 				@property(Foo, {reference})
-				ref?:Foo;
+				declare ref?:Foo;
 			}
 			const root = Foo.create<Foo>({
 				gid: 'root',
@@ -109,11 +109,11 @@ describe("MozelSync", () => {
 		it("merges changes retrieved from createUpdates into the registered Mozels", () => {
 			class Foo extends Mozel {
 				@property(String)
-				name?:string;
+				declare name?:string;
 				@property(Foo)
-				foo?:Foo;
+				declare foo?:Foo;
 				@collection(Foo)
-				foos!:Collection<Foo>
+				declare foos:Collection<Foo>
 			}
 			const data = {
 				name: 'root',
@@ -146,7 +146,7 @@ describe("MozelSync", () => {
 		it("can synchronize Collection item removal", () => {
 			class Foo extends Mozel {
 				@collection(Foo)
-				foos!:Collection<Foo>;
+				declare foos:Collection<Foo>;
 			}
 			const init = {gid: 'root', foos: [{gid: 0}, {gid: 1}]};
 			const foo1 = Foo.create<Foo>(init);
@@ -183,11 +183,11 @@ describe("MozelSync", () => {
 		it("collects changes to all mozels in Registry", () => {
 			class Foo extends Mozel {
 				@property(String)
-				name?:string;
+				declare name?:string;
 				@property(Foo)
-				foo?:Foo;
+				declare foo?:Foo;
 				@collection(Foo)
-				foos!:Collection<Foo>
+				declare foos:Collection<Foo>
 			}
 			const root = Foo.create<Foo>({
 				gid: 'root',
@@ -216,11 +216,11 @@ describe("MozelSync", () => {
 		it("can be applied without causing infinite loops", () => {
 			class Foo extends Mozel {
 				@property(String)
-				name?:string;
+				declare name?:string;
 				@property(Foo)
-				foo?:Foo;
+				declare foo?:Foo;
 				@collection(Foo)
-				foos!:Collection<Foo>;
+				declare foos:Collection<Foo>;
 			}
 			const setup = {
 				gid: 'root',
@@ -260,9 +260,9 @@ describe("MozelSync", () => {
 		it("non-conflicting changes made simultaneously are merged", () => {
 			class Foo extends Mozel {
 				@property(String)
-				foo?:string;
+				declare foo?:string;
 				@property(String)
-				bar?:string;
+				declare bar?:string;
 			}
 			const model1 = Foo.create<Foo>({gid: 1});
 			const model2 = Foo.create<Foo>({gid: 1});
@@ -284,7 +284,7 @@ describe("MozelSync", () => {
 		it("conflicting changes are merged first-come-first-serve", () => {
 			class Foo extends Mozel {
 				@property(String)
-				foo?:string;
+				declare foo?:string;
 			}
 			const model1 = Foo.create<Foo>({gid: 1});
 			const model2 = Foo.create<Foo>({gid: 1});
@@ -304,15 +304,9 @@ describe("MozelSync", () => {
 			assert.equal(model1.foo, 'foo');
 		});
 		it("conflicting changes crossing paths will be settled by MozelSync priority", () => {
-			function transmit(sync1:MozelSync, sync2:MozelSync) {
-				const changes1 = sync1.commit();
-				const changes2 = sync2.commit();
-				sync2.merge(changes1);
-				sync1.merge(changes2);
-			}
 			class Foo extends Mozel {
 				@property(String)
-				foo?:string;
+				declare foo?:string;
 			}
 			const model1 = Foo.create<Foo>({gid: 1});
 			const model2 = Foo.create<Foo>({gid: 1});
@@ -324,8 +318,10 @@ describe("MozelSync", () => {
 			model1.foo = 'foo';
 			model2.foo = 'bar';
 
-			transmit(sync1, sync2);
-			transmit(sync1, sync2);
+			const update1 = sync1.commit();
+			const update2 = sync2.commit();
+			sync2.merge(update1);
+			sync1.merge(update2);
 
 			assert.deepEqual(sync1.commit(), {}, "No more changes in sync1 after round-trip");
 			assert.deepEqual(sync2.commit(), {}, "No more changes in sync2 after round-trip");
@@ -337,11 +333,11 @@ describe("MozelSync", () => {
 		it("resolves conflicting updates through high-priority central model at a first-come-first serve basis", () => {
 			class Foo extends Mozel {
 				@property(String)
-				foo?:string;
+				declare foo?:string;
 				@property(String)
-				bar?:string;
+				declare bar?:string;
 				@property(String)
-				qux?:string;
+				declare qux?:string;
 			}
 			const init = {gid: 1};
 
@@ -382,7 +378,7 @@ describe("MozelSync", () => {
 		it("conflicting properties can overwrite changes in other MozelSyncs before they send their update", () => {
 			class Foo extends Mozel {
 				@property(String)
-				foo?:string;
+				declare foo?:string;
 			}
 			const init = {gid: 1};
 
@@ -417,7 +413,7 @@ describe("MozelSync", () => {
 		it("auto-cleans history to keep a maximum number of entries", () => {
 			class Foo extends Mozel {
 				@property(Number)
-				foo?:number;
+				declare foo?:number;
 			}
 			const init = {gid: 1};
 
@@ -444,7 +440,7 @@ describe("MozelSync", () => {
 		it("rejects updates with a base version lower than oldest update in history", () => {
 			class Foo extends Mozel {
 				@property(Number)
-				foo?:number;
+				declare foo?:number;
 			}
 			const init = {gid: 1};
 
@@ -470,9 +466,9 @@ describe("MozelSync", () => {
 		it("merges updates based on base number", () => {
 			class Foo extends Mozel {
 				@property(String)
-				foo?:string;
+				declare foo?:string;
 				@property(String)
-				bar?:string;
+				declare bar?:string;
 			}
 			const init = {gid: 1};
 
@@ -514,9 +510,9 @@ describe("MozelSync", () => {
 		it("can create sub-Mozels *and* fill in their data, even if data comes after property assignment", () => {
 			class Foo extends Mozel {
 				@string()
-				name?:string;
+				declare name?:string;
 				@property(Foo)
-				foo?:Foo;
+				declare foo?:Foo;
 			}
 			const root = Foo.create<Foo>({gid: 'root'});
 			const sync = new MozelSync({registry: root.$registry});
