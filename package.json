@@ -1,8 +1,8 @@
 {
   "name": "mozel-sync",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "update-mozel": "npm remove mozel && npm i https://github.com/rremigius/mozel.git",
     "test": "echo \"Error: no test specified\" && exit 1"
