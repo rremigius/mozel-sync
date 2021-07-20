@@ -47,6 +47,14 @@ export default class MozelSyncClient {
             this.connecting.reject(error);
         });
         this.io.on('push', commits => {
+            for (let gid of Object.keys(commits)) {
+                // Exclude own commits
+                if (commits[gid].syncID === this.sync.id) {
+                    delete commits[gid];
+                }
+            }
+            if (!Object.keys(commits).length)
+                return;
             log.info(`Received new commits:`, Object.keys(commits));
             this.sync.merge(commits);
         });

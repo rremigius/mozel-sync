@@ -1,8 +1,9 @@
 import {io, Socket} from "socket.io-client"
 import MozelSync from "./MozelSync";
 import Log from "log-control";
-import {call, isNumber} from "./utils";
+import {call, forEach, isNumber, mapValues} from "./utils";
 import Mozel from "mozel";
+import {Commit} from "./MozelWatcher";
 
 const log = Log.instance("mozel-sync-client");
 
@@ -55,6 +56,14 @@ export default class MozelSyncClient {
 			this.connecting.reject(error);
 		})
 		this.io.on('push', commits => {
+			for(let gid of Object.keys(commits)) {
+				// Exclude own commits
+				if(commits[gid].syncID === this.sync.id) {
+					delete commits[gid];
+				}
+			}
+			if(!Object.keys(commits).length) return;
+
 			log.info(`Received new commits:`, Object.keys(commits));
 			this.sync.merge(commits);
 		});
