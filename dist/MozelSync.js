@@ -5,9 +5,9 @@ import { MozelWatcher } from "./MozelWatcher";
 import { call, find, forEach, isNumber, mapValues, throttle } from "./utils";
 const log = Log.instance("mozel-sync");
 export class MozelSyncNewCommitsEvent {
-    updates;
-    constructor(updates) {
-        this.updates = updates;
+    commits;
+    constructor(commits) {
+        this.commits = commits;
     }
 }
 export class MozelSyncEvents extends EventInterface {
@@ -67,6 +67,7 @@ export default class MozelSync {
         });
         this.newPropertyMozels.clear();
         this.events.newCommits.fire(new MozelSyncNewCommitsEvent(updates));
+        log.log("Committing changes to:", Object.keys(updates));
         return updates;
     }
     /**
@@ -74,6 +75,7 @@ export default class MozelSync {
      * @param updates
      */
     merge(updates) {
+        log.log("Merging changes to:", Object.keys(updates));
         /*
         We are not sure in which order updates should be applied: the Mozel may not have been created yet before
         we want to set its data. So we delay setting data and try again next loop, until we finish the queue or it will

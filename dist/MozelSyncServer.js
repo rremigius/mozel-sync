@@ -38,8 +38,10 @@ export default class MozelSyncServer {
                 this.removeUser(socket.id);
             });
             // Listen to incoming updates
-            socket.on('push', commit => {
-                const merged = this.sync.merge(commit);
+            socket.on('push', (commits) => {
+                log.log(`Received commits from client '${socket.id}': ${Object.keys(commits).join(', ')}`);
+                const merged = this.sync.merge(commits);
+                log.log(`Pushing merged commit from client '${socket.id}' to all clients: ${Object.keys(commits).join(', ')}`);
                 this.io.emit('push', merged); // send merged update to others
             });
         });
@@ -47,7 +49,8 @@ export default class MozelSyncServer {
             this.io.listen(this.port);
         }
         this.destroyCallbacks.push(this.sync.events.newCommits.on(event => {
-            this.io.emit('push', event.updates);
+            log.log(`Pushing new commits to all clients: ${Object.keys(event.commits).join(', ')}`);
+            this.io.emit('push', event.commits);
         }));
         log.info("MozelSyncServer started.");
     }
@@ -56,6 +59,7 @@ export default class MozelSyncServer {
         this.sync.stop();
     }
     initUser(id, socket) {
+        log.log(`Client ${id} connected. Sending connection info and full state.`);
         socket.emit('connection', { id: socket.id });
         socket.emit('full-state', this.sync.createFullStates());
         this.onUserConnected(id);

@@ -37,21 +37,26 @@ export default class MozelSyncClient {
     }
     initIO() {
         this.io.on('connection', event => {
+            log.info("MozelSyncClient connected.");
             this.sync.id = event.id;
             this.connecting.resolve(event.id);
             this.onConnected(event.id);
         });
         this.io.on('error', error => {
+            log.error("Could not connect:", error);
             this.connecting.reject(error);
         });
         this.io.on('push', commits => {
+            log.info(`Received new commits: ${Object.keys(commits).join(', ')}`);
             this.sync.merge(commits);
         });
         this.io.on('full-state', state => {
+            log.info(`Received full state from server.`, state);
             this.sync.merge(state);
         });
         this.destroyCallbacks.push(this.sync.events.newCommits.on(event => {
-            this.io.emit('push', event.updates);
+            log.info(`Pushing new commits: ${Object.keys(event.commits).join(', ')}`);
+            this.io.emit('push', event.commits);
         }));
     }
     async start() {
@@ -62,7 +67,6 @@ export default class MozelSyncClient {
     connect() {
         this.io.connect();
         return new Promise((resolve, reject) => {
-            log.info("MozelSyncClient connected.");
             this.connecting.resolve = resolve;
             this.connecting.reject = reject;
         });
@@ -75,12 +79,14 @@ export default class MozelSyncClient {
         // For override
     }
     onDisconnected(id) {
+        // For override
     }
     destroy() {
         this.destroyCallbacks.forEach(call);
         this.onDestroy();
     }
     onDestroy() {
+        // For override
     }
 }
 //# sourceMappingURL=MozelSyncClient.js.map

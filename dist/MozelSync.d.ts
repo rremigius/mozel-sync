@@ -3,8 +3,8 @@ import EventInterface from "event-interface-mixin";
 import { Commit, MozelWatcher } from "./MozelWatcher";
 import Mozel, { Registry } from "mozel";
 export declare class MozelSyncNewCommitsEvent {
-    updates: Record<string, Commit>;
-    constructor(updates: Record<string, Commit>);
+    commits: Record<string, Commit>;
+    constructor(commits: Record<string, Commit>);
 }
 export declare class MozelSyncEvents extends EventInterface {
     newCommits: import("event-interface-mixin").EventEmitter<MozelSyncNewCommitsEvent>;
