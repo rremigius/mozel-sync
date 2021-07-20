@@ -11,15 +11,25 @@ export default class MozelSyncServerHub {
 	readonly io:Server;
 	readonly isDefaultIO;
 	readonly port:number;
-	readonly factory:MozelFactory;
+	readonly Factory:typeof MozelFactory;
 	readonly RootModel:typeof Mozel;
+	readonly createSessionModel:(id:string)=>Mozel;
 	private servers:Record<string, MozelSyncServer> = {};
 
-	constructor(factory:MozelFactory, RootModel:typeof Mozel, options?:{io?:Server|number}) {
+	constructor(options?:{
+		io?:Server|number,
+		Factory?:typeof MozelFactory,
+		RootModel?:typeof Mozel,
+		createSessionModel?:(id:string)=>Mozel
+	}) {
 		const $options = options || {};
 
-		this.factory = factory;
-		this.RootModel = RootModel;
+		this.Factory = $options.Factory || MozelFactory;
+		this.RootModel = $options.RootModel || Mozel;
+		this.createSessionModel = $options.createSessionModel || ((id:string)=>{
+			const factory = new this.Factory();
+			return factory.createRoot(this.RootModel, {gid: 'root'});
+		});
 		this.port = isNumber($options.io) ? $options.io : 3000;
 
 		if($options.io instanceof Server) {
@@ -39,8 +49,9 @@ export default class MozelSyncServerHub {
 		const id = uuid();
 		log.info(`Creating session: ${id}...`);
 		const namespace = this.io.of('/' + id);
-		const model = this.factory.create(this.RootModel, {gid: 'root'});
-		const server = new MozelSyncServer(model, {io: namespace, userClientState: true});
+
+		const model = this.createSessionModel(id);
+		const server = new MozelSyncServer(model, {io: namespace, useClientState: true});
 		this.servers[id] = server;
 		server.start();
 

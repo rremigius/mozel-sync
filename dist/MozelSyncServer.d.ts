@@ -23,7 +23,7 @@ export default class MozelSyncServer {
     constructor(model: Mozel, options?: {
         io?: Server | Namespace;
         port?: number;
-        userClientState?: boolean;
+        useClientState?: boolean;
     });
     start(): void;
     stop(): void;

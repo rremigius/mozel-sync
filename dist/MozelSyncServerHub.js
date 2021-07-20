@@ -3,18 +3,24 @@ import { forEach, isNumber } from "./utils";
 import { v4 as uuid } from "uuid";
 import MozelSyncServer from "./MozelSyncServer";
 import Log from "./log";
+import Mozel, { MozelFactory } from "mozel";
 const log = Log.instance("mozel-sync-server-hub");
 export default class MozelSyncServerHub {
     io;
     isDefaultIO;
     port;
-    factory;
+    Factory;
     RootModel;
+    createSessionModel;
     servers = {};
-    constructor(factory, RootModel, options) {
+    constructor(options) {
         const $options = options || {};
-        this.factory = factory;
-        this.RootModel = RootModel;
+        this.Factory = $options.Factory || MozelFactory;
+        this.RootModel = $options.RootModel || Mozel;
+        this.createSessionModel = $options.createSessionModel || ((id) => {
+            const factory = new this.Factory();
+            return factory.createRoot(this.RootModel, { gid: 'root' });
+        });
         this.port = isNumber($options.io) ? $options.io : 3000;
         if ($options.io instanceof Server) {
             this.io = $options.io;
@@ -32,8 +38,8 @@ export default class MozelSyncServerHub {
         const id = uuid();
         log.info(`Creating session: ${id}...`);
         const namespace = this.io.of('/' + id);
-        const model = this.factory.create(this.RootModel, { gid: 'root' });
-        const server = new MozelSyncServer(model, { io: namespace, userClientState: true });
+        const model = this.createSessionModel(id);
+        const server = new MozelSyncServer(model, { io: namespace, useClientState: true });
         this.servers[id] = server;
         server.start();
         namespace.on('disconnected', async () => {

@@ -24,7 +24,7 @@ export default class MozelSyncServer {
     constructor(model, options) {
         const $options = options || {};
         this.model = model;
-        this.userState = $options.userClientState === true;
+        this.userState = $options.useClientState === true;
         this.sync = new MozelSync(model, { priority: 1, autoCommit: 100 });
         this.sync.syncRegistry(model.$registry);
         let io = $options.io;
