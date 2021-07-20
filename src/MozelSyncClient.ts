@@ -102,7 +102,9 @@ export default class MozelSyncClient {
 	}
 
 	sendFullState() {
-		this.io.emit('full-state', this.model.$export());
+		const state = this.sync.createFullState();
+		log.log(`Sending full state to server:`, state);
+		this.io.emit('full-state', state);
 	}
 
 	connect() {

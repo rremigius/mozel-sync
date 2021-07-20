@@ -1,13 +1,17 @@
 import { Server } from "socket.io";
 import MozelSyncServer from "./MozelSyncServer";
-import Mozel from "mozel";
+import Mozel, { MozelFactory } from "mozel";
 export default class MozelSyncServerHub {
     readonly io: Server;
     readonly isDefaultIO: boolean;
     readonly port: number;
+    readonly factory: MozelFactory;
     readonly RootModel: typeof Mozel;
-    servers: Record<string, MozelSyncServer>;
-    constructor(RootModel: typeof Mozel, io?: Server | number);
+    private servers;
+    constructor(factory: MozelFactory, RootModel: typeof Mozel, options?: {
+        io?: Server | number;
+    });
+    getServer(session: string): MozelSyncServer;
     createSession(): {
         id: string;
     };

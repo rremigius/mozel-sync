@@ -96,8 +96,6 @@ export class MozelWatcher {
 			throw new OutdatedUpdateError(update.baseVersion, this.historyMinBaseVersion);
 		}
 		const changes = this.overrideChangesFromHistory(update);
-		const mozels = findAllDeep(changes, (value, key) => key === 'gid');
-		mozels.map(mozel => this.mozelsInUpdates.add(mozel.gid));
 
 		// Update version
 		const version = Math.max(update.version, this.version);

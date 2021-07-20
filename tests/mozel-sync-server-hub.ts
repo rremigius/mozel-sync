@@ -6,14 +6,11 @@ import {string} from "mozel/dist/Mozel";
 import {interval} from "mozel/dist/utils";
 
 describe("MozelSyncServerHub", () => {
-	describe("event 'create-session'", () => {
+	describe("createSession", () => {
 		it("creates and returns a namespace to which the MozelSyncClient connects automatically", async () => {
-			class Foo extends Mozel {
-				@string()
-				foo?:string;
-			}
+			class Foo extends Mozel {}
 
-			const hub = new MozelSyncServerHub(Foo);
+			const hub = new MozelSyncServerHub(Foo.createFactory(), Foo);
 			hub.start();
 
 			const client1Model = Foo.create<Foo>();
@@ -44,6 +41,29 @@ describe("MozelSyncServerHub", () => {
 			assert.ok(messageReceived, "Message received by client2");
 
 			hub.destroy();
+		});
+		it("creates a Mozel from the provided Factory, based on the first client's state", async () => {
+			class Foo extends Mozel {
+				@string()
+				declare foo?:string;
+			}
+			const hub = new MozelSyncServerHub(Foo.createFactory(), Foo);
+			hub.start();
+
+			const model = Foo.create<Foo>({gid: 'root', foo: 'abc'});
+			const client = new MozelSyncClient(model, 'http://localhost:3000');
+			await client.connect();
+
+			assert.isString(client.session);
+
+			const server = hub.getServer(client.session as string);
+			return new Promise((resolve, reject) => {
+				server.onFullStateUpdate = () => {
+					assert.deepEqual(server.model.$export(), model.$export());
+					server.destroy();
+					resolve();
+				}
+			});
 		});
 	});
 });

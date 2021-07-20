@@ -14,13 +14,25 @@ export default class MozelSyncServer {
 	readonly sync:MozelSync;
 	readonly port:number;
 	readonly model:Mozel;
+	readonly userState:boolean;
+	private sessionOwner?:string;
 
 	readonly destroyCallbacks:Function[] = [];
+	private clients:Record<string, { socket:Socket }> = {};
 
-	constructor(model:Mozel, options?:{io?:Server|Namespace, port?:number}) {
+	/**
+	 *
+	 * @param model
+	 * @param options
+	 * 			options.io				Custom Socket IO Server or Namespace
+	 * 			options.port			Port number for built-in SocketIO Server (if `io` is provided, port is not used)
+	 * 			options.firstUserState	If `true`, will not send the server state to the first client, but will accept their state instead.
+	 */
+	constructor(model:Mozel, options?:{io?:Server|Namespace, port?:number, userClientState?:boolean}) {
 		const $options = options || {};
 
 		this.model = model;
+		this.userState = $options.userClientState === true;
 		this.sync = new MozelSync(model, {priority: 1, autoCommit: 100});
 		this.sync.syncRegistry(model.$registry);
 
@@ -59,15 +71,16 @@ export default class MozelSyncServer {
 					}
 				}
 			});
-			socket.on('full-state', (data:MozelData<any>) => {
+			socket.on('full-state', (state:Record<string, Commit>) => {
 				log.log(`Received full state from client '${socket.id}.'`);
 				try {
-					this.sync.setFullState(data);
+					this.sync.setFullState(state);
+					this.onFullStateUpdate(state);
+					log.log(`Sending full state from client '${socket.id} to all clients.'`);
+					socket.broadcast.emit('full-state', state);
 				} catch(e) {
 					log.error(e);
 				}
-				log.log(`Sending full state from client '${socket.id} to all clients.'`);
-				socket.broadcast.emit('full-state', data);
 			});
 			socket.on('message', (payload:any) => {
 				log.log(`Passing message from client '${socket.id}' to all clients.'`);
@@ -97,9 +110,18 @@ export default class MozelSyncServer {
 	}
 
 	initUser(id:string, socket:Socket) {
-		log.log(`Client ${id} connected. Sending connection info and full state.`);
+		log.info(`Client ${id} connected.`);
+
+		this.clients[id] = {socket};
+		if(Object.keys(this.clients).length === 1) this.sessionOwner = id;
+
+		log.log(`Sending connection info to ${socket.id}.`);
 		socket.emit('connection', {id: socket.id});
-		socket.emit('full-state', this.sync.createFullState());
+
+		if(!this.userState || this.sessionOwner !== id) {
+			log.log(`Sending full state to ${socket.id}.`);
+			socket.emit('full-state', this.sync.createFullState());
+		}
 		this.onUserConnected(id);
 	}
 
@@ -112,6 +134,10 @@ export default class MozelSyncServer {
 	}
 
 	onUserDisconnected(id:string) {
+		// For override
+	}
+
+	onFullStateUpdate(state:Record<string, Commit>) {
 		// For override
 	}
 
