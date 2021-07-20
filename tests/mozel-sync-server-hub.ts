@@ -42,6 +42,8 @@ describe("MozelSyncServerHub", () => {
 
 			await interval(100);
 			assert.ok(messageReceived, "Message received by client2");
+
+			hub.destroy();
 		});
 	});
 });

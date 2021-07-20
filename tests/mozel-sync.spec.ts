@@ -21,8 +21,7 @@ describe("MozelSync", () => {
 					name: 'root.foo'
 				}
 			});
-			const sync = new MozelSync();
-			sync.register(root);
+			const sync = new MozelSync(root);
 			sync.register(root.foo!);
 			sync.start();
 
@@ -52,7 +51,7 @@ describe("MozelSync", () => {
 				gid: 'root',
 				foos: [{gid: 'root.foos.0', name: 'RootFoos0'}, {gid: 'root.foos.1', name: 'RootFoos1'}]
 			});
-			const sync = new MozelSync();
+			const sync = new MozelSync(foo);
 			sync.syncRegistry(foo.$registry);
 			sync.start();
 
@@ -89,7 +88,7 @@ describe("MozelSync", () => {
 					name: 'ChangedFoo'
 				}
 			});
-			const sync = new MozelSync();
+			const sync = new MozelSync(root);
 			sync.syncRegistry(root.$registry);
 			sync.start();
 
@@ -126,14 +125,12 @@ describe("MozelSync", () => {
 			const root1 = Foo.create<Foo>(data);
 			const root2 = Foo.create<Foo>(data);
 
-			const sync1 = new MozelSync();
-			sync1.register(root1);
+			const sync1 = new MozelSync(root1);
 			sync1.register(root1.foo!);
 			sync1.register(root1.foos.get(0)!);
 			sync1.start();
 
-			const sync2 = new MozelSync();
-			sync2.register(root2);
+			const sync2 = new MozelSync(root2);
 			sync2.register(root2.foo!);
 			sync2.register(root2.foos.get(0)!);
 
@@ -155,8 +152,8 @@ describe("MozelSync", () => {
 			const foo1 = Foo.create<Foo>(init);
 			const foo2 = Foo.create<Foo>(init);
 
-			const sync1 = new MozelSync({registry: foo1.$registry});
-			const sync2 = new MozelSync({registry: foo2.$registry});
+			const sync1 = new MozelSync(foo1, {syncRegistry: true});
+			const sync2 = new MozelSync(foo2, {syncRegistry: true});
 			sync1.start();
 			sync2.start();
 
@@ -172,16 +169,15 @@ describe("MozelSync", () => {
 	});
 	describe("syncRegistry", () => {
 		it("registers and unregisters all Mozels registers/unregisters in MozelSync", () => {
-			const registry = new Registry<Mozel>();
-			const sync = new MozelSync();
-			sync.syncRegistry(registry);
-
 			const mozel1 = new Mozel();
-			registry.register(mozel1);
+			const sync = new MozelSync(mozel1);
+			sync.syncRegistry(mozel1.$registry);
 
-			assert.ok(sync.has(mozel1), "mozel1 registered in sync");
+			const mozel2 = mozel1.$create(Mozel, {});
 
-			registry.remove(mozel1);
+			assert.ok(sync.has(mozel2), "mozel2 registered in sync");
+
+			mozel1.$registry.remove(mozel1);
 
 			assert.notOk(sync.has(mozel1), "mozel1 unregistered in sync");
 		});
@@ -201,8 +197,7 @@ describe("MozelSync", () => {
 				foos: [{gid: 'root.foos.0'}]
 			});
 
-			const sync = new MozelSync();
-			sync.syncRegistry(root.$registry);
+			const sync = new MozelSync(root, {syncRegistry: true});
 			sync.start();
 
 			root.foo!.name = 'rootFoo';
@@ -239,12 +234,10 @@ describe("MozelSync", () => {
 			const model1 = Foo.create<Foo>(setup);
 			const model2 = Foo.create<Foo>(setup);
 
-			const sync1 = new MozelSync();
-			sync1.syncRegistry(model1.$registry);
+			const sync1 = new MozelSync(model1, {syncRegistry: true});
 			sync1.start();
 
-			const sync2 = new MozelSync();
-			sync2.syncRegistry(model2.$registry);
+			const sync2 = new MozelSync(model2, {syncRegistry: true});
 			sync2.start();
 
 			assert.deepEqual(sync1.commit(), {}, "No changes in sync1 at start");
@@ -273,8 +266,8 @@ describe("MozelSync", () => {
 			}
 			const model1 = Foo.create<Foo>({gid: 1});
 			const model2 = Foo.create<Foo>({gid: 1});
-			const sync1 = new MozelSync({registry: model1.$registry});
-			const sync2 = new MozelSync({registry: model2.$registry});
+			const sync1 = new MozelSync(model1, {syncRegistry: true});
+			const sync2 = new MozelSync(model2, {syncRegistry: true});
 			sync1.start();
 			sync2.start();
 
@@ -295,8 +288,8 @@ describe("MozelSync", () => {
 			}
 			const model1 = Foo.create<Foo>({gid: 1});
 			const model2 = Foo.create<Foo>({gid: 1});
-			const sync1 = new MozelSync({registry: model1.$registry});
-			const sync2 = new MozelSync({registry: model2.$registry});
+			const sync1 = new MozelSync(model1, {syncRegistry: true});
+			const sync2 = new MozelSync(model2, {syncRegistry: true});
 			sync1.start();
 			sync2.start();
 
@@ -317,8 +310,8 @@ describe("MozelSync", () => {
 			}
 			const model1 = Foo.create<Foo>({gid: 1});
 			const model2 = Foo.create<Foo>({gid: 1});
-			const sync1 = new MozelSync({registry: model1.$registry, priority: 1});
-			const sync2 = new MozelSync({registry: model2.$registry});
+			const sync1 = new MozelSync(model1, {syncRegistry: true, priority: 1});
+			const sync2 = new MozelSync(model2, {syncRegistry: true});
 			sync1.start();
 			sync2.start();
 
@@ -352,9 +345,9 @@ describe("MozelSync", () => {
 			const model2 = Foo.create<Foo>(init);
 			const modelCentral = Foo.create<Foo>(init);
 
-			const sync1 = new MozelSync({registry: model1.$registry});
-			const sync2 = new MozelSync({registry: model2.$registry});
-			const syncCentral = new MozelSync({registry: modelCentral.$registry, priority: 1});
+			const sync1 = new MozelSync(model1, {syncRegistry: true});
+			const sync2 = new MozelSync(model2, {syncRegistry: true});
+			const syncCentral = new MozelSync(modelCentral, {syncRegistry: true, priority: 1});
 			sync1.start();
 			sync2.start();
 			syncCentral.start();
@@ -393,9 +386,9 @@ describe("MozelSync", () => {
 			const model2 = Foo.create<Foo>(init);
 			const modelCentral = Foo.create<Foo>(init);
 
-			const sync1 = new MozelSync({registry: model1.$registry});
-			const sync2 = new MozelSync({registry: model2.$registry});
-			const syncCentral = new MozelSync({registry: modelCentral.$registry, priority: 1});
+			const sync1 = new MozelSync(model1, {syncRegistry: true});
+			const sync2 = new MozelSync(model2, {syncRegistry: true});
+			const syncCentral = new MozelSync(modelCentral, {syncRegistry: true, priority: 1});
 			sync1.start();
 			sync2.start();
 			syncCentral.start();
@@ -426,8 +419,8 @@ describe("MozelSync", () => {
 
 			const model1 = Foo.create<Foo>(init);
 			const model2 = Foo.create<Foo>(init);
-			const sync1 = new MozelSync({registry: model1.$registry});
-			const sync2 = new MozelSync({registry: model2.$registry, historyLength: 2});
+			const sync1 = new MozelSync(model1, {syncRegistry: true});
+			const sync2 = new MozelSync(model2, {syncRegistry: true, historyLength: 2});
 
 			sync1.start();
 			sync2.start();
@@ -453,8 +446,8 @@ describe("MozelSync", () => {
 
 			const model1 = Foo.create<Foo>(init);
 			const model2 = Foo.create<Foo>(init);
-			const sync1 = new MozelSync({registry: model1.$registry});
-			const sync2 = new MozelSync({registry: model2.$registry, historyLength: 2});
+			const sync1 = new MozelSync(model1, {syncRegistry: true});
+			const sync2 = new MozelSync(model2, {syncRegistry:true, historyLength: 2});
 			sync1.start();
 			sync2.start();
 
@@ -482,9 +475,9 @@ describe("MozelSync", () => {
 			const model1 = Foo.create<Foo>(init);
 			const model2 = Foo.create<Foo>(init);
 			const modelCentral = Foo.create<Foo>(init);
-			const sync1 = new MozelSync({registry: model1.$registry});
-			const sync2 = new MozelSync({registry: model2.$registry});
-			const syncCentral = new MozelSync({registry: modelCentral.$registry, priority: 1});
+			const sync1 = new MozelSync(model1, {syncRegistry: true});
+			const sync2 = new MozelSync(model2, {syncRegistry: true});
+			const syncCentral = new MozelSync(modelCentral, {syncRegistry: true, priority: 1});
 			sync1.start();
 			sync2.start();
 			syncCentral.start();
@@ -522,7 +515,7 @@ describe("MozelSync", () => {
 				declare foo?:Foo;
 			}
 			const root = Foo.create<Foo>({gid: 'root'});
-			const sync = new MozelSync({registry: root.$registry});
+			const sync = new MozelSync(root, {syncRegistry: true});
 			sync.merge({
 				'new-gid': {
 					syncID: 'foo',

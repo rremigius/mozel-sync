@@ -3,7 +3,7 @@ import EventInterface from "event-interface-mixin";
 import {v4 as uuid} from "uuid";
 import Log from "./log";
 import {Commit, MozelWatcher} from "./MozelWatcher";
-import {call, find, forEach, isNumber, mapValues, throttle} from "./utils";
+import {call, find, forEach, isNumber, mapValues, throttle, values} from "./utils";
 import Mozel, {MozelFactory, Registry} from "mozel";
 import {MozelData} from "mozel/dist/Mozel";
 
@@ -41,7 +41,7 @@ export default class MozelSync {
 	private unRegisterCallbacks:Record<alphanumeric, Function[]> = {};
 	private destroyCallbacks:Function[] = [];
 	private registry?:Registry<Mozel>;
-	private model?:Mozel;
+	private model:Mozel;
 	public readonly historyLength:number;
 
 	private active:boolean = false;
@@ -50,6 +50,7 @@ export default class MozelSync {
 	public readonly events = new MozelSyncEvents();
 
 	constructor(model:Mozel, options?:{
+		syncRegistry?:boolean,
 		priority?:number,
 		historyLength?:number,
 		autoCommit?:number
@@ -62,14 +63,21 @@ export default class MozelSync {
 
 		this.model = model;
 		this.register(model);
+		if($options.syncRegistry) {
+			this.syncRegistry(model.$registry);
+		}
 	}
 
-	createFullStates() {
-		return mapValues(this.watchers, watcher => watcher.createFullState());
+	createFullState() {
+		return this.model.$export();
 	}
 
 	hasChanges() {
 		return !!find(this.watchers, watcher => watcher.hasChanges());
+	}
+
+	setFullState(state:MozelData<any>) {
+		return this.model.$setData(state);
 	}
 
 	commit() {
@@ -185,9 +193,9 @@ export default class MozelSync {
 
 	destroy(destroyMozels = false) {
 		this.destroyCallbacks.forEach(call);
-		forEach(this.watchers, watcher => {
+		values(this.watchers).forEach(watcher => {
 			this.unregister(watcher.mozel);
-			watcher.mozel.$destroy();
+			if(destroyMozels) watcher.mozel.$destroy();
 		});
 	}
 }

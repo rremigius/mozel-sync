@@ -1,5 +1,5 @@
 import {Server} from "socket.io";
-import {isNumber} from "./utils";
+import {forEach, isNumber} from "./utils";
 import {v4 as uuid} from "uuid";
 import MozelSyncServer from "./MozelSyncServer";
 import Log from "./log";
@@ -12,6 +12,7 @@ export default class MozelSyncServerHub {
 	readonly isDefaultIO;
 	readonly port:number;
 	readonly RootModel:typeof Mozel;
+	servers:Record<string, MozelSyncServer> = {};
 
 	constructor(RootModel:typeof Mozel, io?:Server|number) {
 		this.RootModel = RootModel;
@@ -31,6 +32,7 @@ export default class MozelSyncServerHub {
 		const namespace = this.io.of('/' + id);
 		const model = this.RootModel.create({gid: 'root'});
 		const server = new MozelSyncServer(model, {io: namespace});
+		this.servers[id] = server;
 		server.start();
 
 		namespace.on('disconnected', async () => {
@@ -56,8 +58,15 @@ export default class MozelSyncServerHub {
 	}
 
 	stop() {
+		forEach(this.servers, server => server.stop());
 		if(this.isDefaultIO) {
 			this.io.close();
 		}
+	}
+
+	destroy() {
+		this.stop();
+		forEach(this.servers, server => server.destroy());
+		this.servers = {};
 	}
 }

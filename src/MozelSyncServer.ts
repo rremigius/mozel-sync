@@ -52,7 +52,7 @@ export default class MozelSyncServer {
 			});
 			socket.on('full-state', (data:MozelData<any>) => {
 				log.log(`Received full state from client '${socket.id}.'`);
-				this.sync.merge(data);
+				this.sync.setFullState(data);
 				log.log(`Sending full state from client '${socket.id} to all clients.'`);
 				socket.broadcast.emit('full-state', data);
 			});
@@ -86,7 +86,7 @@ export default class MozelSyncServer {
 	initUser(id:string, socket:Socket) {
 		log.log(`Client ${id} connected. Sending connection info and full state.`);
 		socket.emit('connection', {id: socket.id});
-		socket.emit('full-state', this.sync.createFullStates());
+		socket.emit('full-state', this.sync.createFullState());
 		this.onUserConnected(id);
 	}
 
