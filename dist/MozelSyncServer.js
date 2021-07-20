@@ -39,9 +39,9 @@ export default class MozelSyncServer {
             });
             // Listen to incoming updates
             socket.on('push', (commits) => {
-                log.log(`Received commits from client '${socket.id}': ${Object.keys(commits).join(', ')}`);
+                log.log(`Received commits from client '${socket.id}': ${Object.keys(commits)}`);
                 const merged = this.sync.merge(commits);
-                log.log(`Pushing merged commit from client '${socket.id}' to all clients: ${Object.keys(commits).join(', ')}`);
+                log.log(`Pushing merged commit from client '${socket.id}' to all clients: ${Object.keys(commits)}`);
                 this.io.emit('push', merged); // send merged update to others
             });
         });
@@ -49,7 +49,7 @@ export default class MozelSyncServer {
             this.io.listen(this.port);
         }
         this.destroyCallbacks.push(this.sync.events.newCommits.on(event => {
-            log.log(`Pushing new commits to all clients: ${Object.keys(event.commits).join(', ')}`);
+            log.log(`Pushing new commits to all clients: ${Object.keys(event.commits)}`);
             this.io.emit('push', event.commits);
         }));
         log.info("MozelSyncServer started.");

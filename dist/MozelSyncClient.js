@@ -47,7 +47,7 @@ export default class MozelSyncClient {
             this.connecting.reject(error);
         });
         this.io.on('push', commits => {
-            log.info(`Received new commits: ${Object.keys(commits).join(', ')}`);
+            log.info(`Received new commits: ${Object.keys(commits)}`);
             this.sync.merge(commits);
         });
         this.io.on('full-state', state => {
@@ -55,7 +55,7 @@ export default class MozelSyncClient {
             this.sync.merge(state);
         });
         this.destroyCallbacks.push(this.sync.events.newCommits.on(event => {
-            log.info(`Pushing new commits: ${Object.keys(event.commits).join(', ')}`);
+            log.info(`Pushing new commits: ${Object.keys(event.commits)}`);
             this.io.emit('push', event.commits);
         }));
     }
