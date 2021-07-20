@@ -1,43 +1,34 @@
 import {io, Socket} from "socket.io-client"
 import MozelSync from "./MozelSync";
 import Log from "log-control";
-import {call, forEach, isNumber, mapValues} from "./utils";
+import {call} from "./utils";
 import Mozel from "mozel";
-import {Commit} from "./MozelWatcher";
 
 const log = Log.instance("mozel-sync-client");
 
 export default class MozelSyncClient {
-	readonly io:Socket;
-	readonly isDefaultIO:boolean;
+	protected _io:Socket;
+	get io() { return this._io };
+
+	readonly model:Mozel;
 	readonly sync:MozelSync;
 
 	private connecting = {resolve:(id:string)=>{}, reject:(err:Error)=>{}};
 	private destroyCallbacks:Function[];
+	private server:string;
+	private sessionOwner:boolean = false;
+	private _session?:string;
+	get session() { return this._session; }
 
-	constructor(options?:{model?:Mozel, sync?:MozelSync, socket?:Socket|number}) {
-		const $options = options || {};
+	constructor(model:Mozel, server:string, session?:string) {
+		this.model = model;
+		this._session = session;
+		this.sync = new MozelSync(model, {autoCommit: 100});
+		this.sync.syncRegistry(model.$registry);
 
-		let sync = $options.sync;
-		if(!sync) {
-			sync = new MozelSync({autoCommit: 100});
-			if($options.model) {
-				sync.syncRegistry($options.model.$registry);
-			}
-		} else if ($options.model) {
-			sync.register($options.model);
-		}
-		this.sync = sync;
-
-		let socket = $options.socket;
-		if(socket instanceof Socket) {
-			this.io = socket;
-			this.isDefaultIO = false;
-		} else {
-			const port = isNumber(socket) ? socket : 3000;
-			this.io = io(`http://localhost:${port}`);
-			this.isDefaultIO = true;
-		}
+		this.server = server;
+		const url = session ? `${server}/${session}` : server;
+		this._io = io(url);
 
 		this.destroyCallbacks = [];
 
@@ -45,9 +36,22 @@ export default class MozelSyncClient {
 	}
 
 	initIO() {
+		this.io.on('session-created', session => {
+			this._session = session.id;
+			this.sessionOwner = true;
+			this.disconnect();
+
+			// Redirect to namespace
+			this._io = io(this.server + '/' + session.id);
+			this.initIO();
+			this._io.connect();
+		});
 		this.io.on('connection', event => {
 			log.info("MozelSyncClient connected.");
 			this.sync.id = event.id;
+			if(this.sessionOwner) {
+				this.sendFullState();
+			}
 			this.connecting.resolve(event.id);
 			this.onConnected(event.id);
 		});
@@ -71,6 +75,10 @@ export default class MozelSyncClient {
 			log.info(`Received full state from server.`, state);
 			this.sync.merge(state);
 		});
+		this.io.on('message', message => {
+			log.info("Received message:", message);
+			this.onMessageReceived(message);
+		});
 		this.destroyCallbacks.push(
 			this.sync.events.newCommits.on(event => {
 				log.info(`Pushing new commits:`, Object.keys(event.commits));
@@ -83,6 +91,18 @@ export default class MozelSyncClient {
 		this.sync.start();
 		await this.connect();
 		log.info("MozelSyncClient started.");
+	}
+
+	message(payload:any) {
+		this.io.emit('message', payload);
+	}
+
+	onMessageReceived(payload:unknown) {
+		// for override
+	}
+
+	sendFullState() {
+		this.io.emit('full-state', this.model.$export());
 	}
 
 	connect() {

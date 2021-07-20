@@ -4,7 +4,8 @@ import {v4 as uuid} from "uuid";
 import Log from "./log";
 import {Commit, MozelWatcher} from "./MozelWatcher";
 import {call, find, forEach, isNumber, mapValues, throttle} from "./utils";
-import Mozel, {Registry} from "mozel";
+import Mozel, {MozelFactory, Registry} from "mozel";
+import {MozelData} from "mozel/dist/Mozel";
 
 const log = Log.instance("mozel-sync");
 
@@ -40,6 +41,7 @@ export default class MozelSync {
 	private unRegisterCallbacks:Record<alphanumeric, Function[]> = {};
 	private destroyCallbacks:Function[] = [];
 	private registry?:Registry<Mozel>;
+	private model?:Mozel;
 	public readonly historyLength:number;
 
 	private active:boolean = false;
@@ -47,15 +49,19 @@ export default class MozelSync {
 
 	public readonly events = new MozelSyncEvents();
 
-	constructor(options?:{model?:Mozel, registry?:Registry<Mozel>, priority?:number, historyLength?:number, autoCommit?:number}) {
+	constructor(model:Mozel, options?:{
+		priority?:number,
+		historyLength?:number,
+		autoCommit?:number
+	}) {
 		const $options = options || {};
 		this.priority = $options.priority || 0;
 		this.historyLength = isNumber($options.historyLength) ? $options.historyLength : 20;
 
 		this.autoCommit = $options.autoCommit;
 
-		if($options.model) this.register($options.model);
-		if($options.registry) this.syncRegistry($options.registry);
+		this.model = model;
+		this.register(model);
 	}
 
 	createFullStates() {
@@ -177,8 +183,11 @@ export default class MozelSync {
 		forEach(this.watchers, watcher => watcher.stop());
 	}
 
-	destroy() {
-		forEach(this.watchers, watcher => this.unregister(watcher.mozel));
+	destroy(destroyMozels = false) {
 		this.destroyCallbacks.forEach(call);
+		forEach(this.watchers, watcher => {
+			this.unregister(watcher.mozel);
+			watcher.mozel.$destroy();
+		});
 	}
 }

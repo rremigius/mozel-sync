@@ -1,30 +1,14 @@
-import Mozel, {property} from "mozel";
+import {Server} from "socket.io";
+import io from "socket.io-client";
 
-class Foo extends Mozel {
-	@property(String)
-	declare foo?:string;
+const server = new Server();
+server.of('/test').on('connection', socket => {
+	console.log('test');
+	socket.emit('test');
+});
+server.listen(3000);
 
-	constructor(...args:any[]) {
-		super(...args);
-	}
-}
-
-class Base {
-	foo?:string;
-	constructor() {
-		this.foo = '123';
-	}
-}
-
-class Test extends Base {
-	declare foo?:string;
-}
-
-const test = new Test();
-console.log(test.foo);
-
-const foo = Foo.create<Foo>();
-// TODO: for some fucking reason, `foo` is set to `undefined` AFTER the Mozel constructor
-(foo.foo as any) = 'xyz';
-
-console.log(foo.foo);
+const client = io('http://localhost:3000/test');
+client.on('test', () => {
+	console.log("TEST");
+});
