@@ -69,15 +69,15 @@ export default class MozelSync {
 	}
 
 	createFullState() {
-		return this.model.$export();
+		return mapValues(this.watchers, watcher => watcher.createFullState());
 	}
 
 	hasChanges() {
 		return !!find(this.watchers, watcher => watcher.hasChanges());
 	}
 
-	setFullState(state:MozelData<any>) {
-		return this.model.$setData(state);
+	setFullState(state:Record<alphanumeric, Commit>) {
+		return this.merge(state);
 	}
 
 	commit() {
