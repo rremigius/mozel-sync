@@ -31,6 +31,7 @@ export default class MozelSyncServer {
         this.io.on('connection', (socket) => {
             this.initUser(socket.id, socket);
             socket.on('disconnect', () => {
+                log.info(`Client disconnected: ${socket.id}`);
                 this.removeUser(socket.id);
             });
             // Listen to incoming updates

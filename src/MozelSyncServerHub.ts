@@ -29,6 +29,7 @@ export default class MozelSyncServerHub {
 
 	createSession() {
 		const id = uuid();
+		log.info(`Creating session: ${id}...`);
 		const namespace = this.io.of('/' + id);
 		const model = this.RootModel.create({gid: 'root'});
 		const server = new MozelSyncServer(model, {io: namespace});
@@ -44,7 +45,12 @@ export default class MozelSyncServerHub {
 			namespace.removeAllListeners();
 		});
 
+		this.onSessionCreated(model, {id});
 		return {id};
+	}
+
+	onSessionCreated(model:Mozel, session:{id:string}) {
+		// for override
 	}
 
 	start() {

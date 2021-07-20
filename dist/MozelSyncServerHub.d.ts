@@ -11,6 +11,9 @@ export default class MozelSyncServerHub {
     createSession(): {
         id: string;
     };
+    onSessionCreated(model: Mozel, session: {
+        id: string;
+    }): void;
     start(): void;
     stop(): void;
     destroy(): void;
