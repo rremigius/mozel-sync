@@ -1,26 +1,21 @@
-import { Server } from "socket.io";
+import { Namespace, Server } from "socket.io";
 import MozelSync from "./MozelSync";
 import Log from "./log";
-import { isNumber } from "./utils";
 const log = Log.instance("mozel-sync-server");
 export default class MozelSyncServer {
     io;
     isDefaultIO;
     sync;
     port;
+    model;
     destroyCallbacks = [];
-    constructor(options) {
+    constructor(model, options) {
         const $options = options || {};
-        let sync = $options.sync;
-        if (!sync) {
-            sync = new MozelSync({ priority: 1, autoCommit: 100 });
-            if ($options.model) {
-                sync.syncRegistry($options.model.$registry);
-            }
-        }
-        this.sync = sync;
+        this.model = model;
+        this.sync = new MozelSync(model, { priority: 1, autoCommit: 100 });
+        this.sync.syncRegistry(model.$registry);
         let io = $options.io;
-        if (io instanceof Server) {
+        if (io instanceof Server || io instanceof Namespace) {
             this.io = io;
             this.isDefaultIO = false;
         }
@@ -28,7 +23,7 @@ export default class MozelSyncServer {
             this.io = new Server();
             this.isDefaultIO = true;
         }
-        this.port = isNumber($options.io) ? $options.io : 3000;
+        this.port = $options.port || 3000;
     }
     start() {
         this.sync.start();
@@ -42,10 +37,20 @@ export default class MozelSyncServer {
                 log.log(`Received commits from client '${socket.id}':`, Object.keys(commits));
                 const merged = this.sync.merge(commits);
                 log.log(`Pushing merged commit from client '${socket.id}' to all clients:`, Object.keys(commits));
-                this.io.emit('push', merged); // send merged update to others
+                socket.broadcast.emit('push', merged); // send merged update to others
+            });
+            socket.on('full-state', (data) => {
+                log.log(`Received full state from client '${socket.id}.'`);
+                this.sync.setFullState(data);
+                log.log(`Sending full state from client '${socket.id} to all clients.'`);
+                socket.broadcast.emit('full-state', data);
+            });
+            socket.on('message', (payload) => {
+                log.log(`Passing message from client '${socket.id}' to all clients.'`);
+                socket.broadcast.emit('message', payload);
             });
         });
-        if (this.isDefaultIO) {
+        if (this.isDefaultIO && this.io instanceof Server) {
             this.io.listen(this.port);
         }
         this.destroyCallbacks.push(this.sync.events.newCommits.on(event => {
@@ -55,13 +60,16 @@ export default class MozelSyncServer {
         log.info("MozelSyncServer started.");
     }
     stop() {
-        this.io.close();
-        this.sync.stop();
+        if (this.io instanceof Server)
+            this.io.close();
+        if (this.isDefaultIO) {
+            this.sync.stop();
+        }
     }
     initUser(id, socket) {
         log.log(`Client ${id} connected. Sending connection info and full state.`);
         socket.emit('connection', { id: socket.id });
-        socket.emit('full-state', this.sync.createFullStates());
+        socket.emit('full-state', this.sync.createFullState());
         this.onUserConnected(id);
     }
     removeUser(id) {
@@ -75,6 +83,8 @@ export default class MozelSyncServer {
     }
     destroy() {
         this.destroyCallbacks.forEach(callback => callback());
+        this.stop();
+        this.sync.destroy(true);
     }
 }
 //# sourceMappingURL=MozelSyncServer.js.map

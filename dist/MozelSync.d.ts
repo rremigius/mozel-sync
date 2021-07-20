@@ -2,6 +2,7 @@ import { alphanumeric } from "validation-kit";
 import EventInterface from "event-interface-mixin";
 import { Commit, MozelWatcher } from "./MozelWatcher";
 import Mozel, { Registry } from "mozel";
+import { MozelData } from "mozel/dist/Mozel";
 export declare class MozelSyncNewCommitsEvent {
     commits: Record<string, Commit>;
     constructor(commits: Record<string, Commit>);
@@ -24,22 +25,20 @@ export default class MozelSync {
     private unRegisterCallbacks;
     private destroyCallbacks;
     private registry?;
+    private model;
     readonly historyLength: number;
     private active;
     priority: number;
     readonly events: MozelSyncEvents;
-    constructor(options?: {
-        model?: Mozel;
-        registry?: Registry<Mozel>;
+    constructor(model: Mozel, options?: {
+        syncRegistry?: boolean;
         priority?: number;
         historyLength?: number;
         autoCommit?: number;
     });
-    createFullStates(): {
-        [x: string]: Commit;
-        [x: number]: Commit;
-    };
+    createFullState(): import("mozel/dist/Mozel").Data;
     hasChanges(): boolean;
+    setFullState(state: MozelData<any>): void;
     commit(): Record<alphanumeric, Commit>;
     /**
      * Merges the given updates for each MozelWatcher
@@ -53,5 +52,5 @@ export default class MozelSync {
     syncRegistry(registry: Registry<Mozel>): void;
     start(): void;
     stop(): void;
-    destroy(): void;
+    destroy(destroyMozels?: boolean): void;
 }

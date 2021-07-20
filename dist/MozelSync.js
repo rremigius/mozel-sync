@@ -2,7 +2,7 @@ import EventInterface from "event-interface-mixin";
 import { v4 as uuid } from "uuid";
 import Log from "./log";
 import { MozelWatcher } from "./MozelWatcher";
-import { call, find, forEach, isNumber, mapValues, throttle } from "./utils";
+import { call, find, forEach, isNumber, throttle, values } from "./utils";
 const log = Log.instance("mozel-sync");
 export class MozelSyncNewCommitsEvent {
     commits;
@@ -37,25 +37,30 @@ export default class MozelSync {
     unRegisterCallbacks = {};
     destroyCallbacks = [];
     registry;
+    model;
     historyLength;
     active = false;
     priority;
     events = new MozelSyncEvents();
-    constructor(options) {
+    constructor(model, options) {
         const $options = options || {};
         this.priority = $options.priority || 0;
         this.historyLength = isNumber($options.historyLength) ? $options.historyLength : 20;
         this.autoCommit = $options.autoCommit;
-        if ($options.model)
-            this.register($options.model);
-        if ($options.registry)
-            this.syncRegistry($options.registry);
+        this.model = model;
+        this.register(model);
+        if ($options.syncRegistry) {
+            this.syncRegistry(model.$registry);
+        }
     }
-    createFullStates() {
-        return mapValues(this.watchers, watcher => watcher.createFullState());
+    createFullState() {
+        return this.model.$export();
     }
     hasChanges() {
         return !!find(this.watchers, watcher => watcher.hasChanges());
+    }
+    setFullState(state) {
+        return this.model.$setData(state);
     }
     commit() {
         const updates = {};
@@ -159,9 +164,13 @@ export default class MozelSync {
         this.active = false;
         forEach(this.watchers, watcher => watcher.stop());
     }
-    destroy() {
-        forEach(this.watchers, watcher => this.unregister(watcher.mozel));
+    destroy(destroyMozels = false) {
         this.destroyCallbacks.forEach(call);
+        values(this.watchers).forEach(watcher => {
+            this.unregister(watcher.mozel);
+            if (destroyMozels)
+                watcher.mozel.$destroy();
+        });
     }
 }
 //# sourceMappingURL=MozelSync.js.map
