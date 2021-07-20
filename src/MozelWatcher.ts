@@ -262,11 +262,12 @@ export class MozelWatcher {
 				if(lastUpdate && this.isEqualChangeValue(this.mozel.$get(property.name), lastUpdate.changes[property.name])) {
 					// If the change is a direct result of the last update, we don't need to include it in our changes.
 					// We don't need to tell whoever sent the update to also apply the same changes of their own update.
+					delete this._changes[property.name]; // also remove any change if already recorded
 					return;
 				}
 				this._changes[property.name] = this.mozel.$get(property.name);
 				this.events.changed.fire(new MozelWatcherChangedEvent(change.changePath));
-			}));
+			}, {debounce: 0}));
 		});
 
 		// Keep track of newly created Mozels
