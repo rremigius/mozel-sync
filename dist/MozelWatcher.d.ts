@@ -50,11 +50,12 @@ export declare class MozelWatcher {
     });
     isNewMozel(mozel: Mozel): boolean;
     /**
-     * Merges the update into the current Mozel.
-     * Returns the final update, with all overrides removed, and its own priority applied
-     * @param update
+     * Merges the commit into the current Mozel.
+     * Returns the final commit, with all overrides removed, and its own priority applied
+     * @param commit
      */
-    merge(update: Commit): Commit;
+    merge(commit: Commit): Commit;
+    setFullState(commit: Commit): void;
     overrideChangesFromHistory(update: Commit): {
         [x: string]: any;
     };

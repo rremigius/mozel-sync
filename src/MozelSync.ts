@@ -36,7 +36,7 @@ export default class MozelSync {
 	};
 
 	private mozels:Record<alphanumeric, Mozel> = {};
-	private newPropertyMozels:Set<alphanumeric> = new Set<alphanumeric>();
+	private newMozels:Set<alphanumeric> = new Set<alphanumeric>();
 	private watchers:Record<alphanumeric, MozelWatcher> = {};
 	private unRegisterCallbacks:Record<alphanumeric, Function[]> = {};
 	private destroyCallbacks:Function[] = [];
@@ -76,10 +76,6 @@ export default class MozelSync {
 		return !!find(this.watchers, watcher => watcher.hasChanges());
 	}
 
-	setFullState(state:Record<alphanumeric, Commit>) {
-		return this.merge(state);
-	}
-
 	commit() {
 		const updates:Record<alphanumeric, Commit> = {};
 		forEach(this.watchers, watcher => {
@@ -88,39 +84,38 @@ export default class MozelSync {
 
 			updates[watcher.mozel.gid] = update;
 		});
-		this.newPropertyMozels.clear();
+		this.newMozels.clear();
 		this.events.newCommits.fire(new MozelSyncNewCommitsEvent(updates));
 		log.log("Committing changes to:", Object.keys(updates));
 		return updates;
 	}
 
 	/**
-	 * Merges the given updates for each MozelWatcher
-	 * @param updates
+	 * Executes the given callback in an order that should allow watchers to be created and available by the time
+	 * the commit can be handled. Works only for callbacks that will somehow initialize watchers based on commits (e.g. merge)
+	 * @param commits
+	 * @param callback
 	 */
-	merge(updates:Record<alphanumeric, Commit>) {
-		log.log("Merging changes:", Object.keys(updates));
-
+	commitsOrderedForWatchers(commits:Record<alphanumeric, Commit>, callback:(watcher:MozelWatcher, commit:Commit)=>void) {
 		/*
 		We are not sure in which order updates should be applied: the Mozel may not have been created yet before
 		we want to set its data. So we delay setting data and try again next loop, until we finish the queue or it will
 		not get smaller.
 		 */
 		let queue:(Commit & {gid:alphanumeric})[] = [];
-		forEach(updates, (update, gid) => {
+		forEach(commits, (update, gid) => {
 			queue.push({gid, ...update});
 		});
 
-		const merges:Record<alphanumeric, Commit> = {}
 		while(Object.keys(queue).length) {
 			let newQueue:(Commit & {gid:alphanumeric})[] = [];
-			for(let update of queue) {
-				const watcher = this.watchers[update.gid];
+			for(let commit of queue) {
+				const watcher = this.watchers[commit.gid];
 				if(!watcher) {
-					newQueue.push(update);
+					newQueue.push(commit);
 					continue;
 				}
-				merges[update.gid] = watcher.merge(update);
+				callback(watcher, commit);
 			}
 			if(newQueue.length === queue.length) {
 				log.log(`Skipped ${queue.length} commits their GIDs are not registered in this MozelSync:`, Object.keys(queue));
@@ -128,8 +123,26 @@ export default class MozelSync {
 			} // no more progress
 			queue = newQueue;
 		}
+	}
 
-		return merges; // return updates with adapted priority
+	/**
+	 * Merges the given commits for each MozelWatcher
+	 * @param commits
+	 */
+	merge(commits:Record<alphanumeric, Commit>) {
+		log.log("Merging commits:", Object.keys(commits));
+		const merges:Record<alphanumeric, Commit> = {}
+		this.commitsOrderedForWatchers(commits, (watcher, commit) => {
+			merges[watcher.mozel.gid] = {...watcher.merge(commit), priority: this.priority};
+		});
+		return merges;
+	}
+
+	setFullState(commits:Record<alphanumeric, Commit>) {
+		log.log("Setting full state:", Object.keys(commits));
+		this.commitsOrderedForWatchers(commits, (watcher, commit) => {
+			watcher.setFullState(commit);
+		});
 	}
 
 	getWatcher(gid:alphanumeric) {
@@ -145,7 +158,7 @@ export default class MozelSync {
 			historyLength: this.historyLength
 		});
 		this.mozels[mozel.gid] = mozel;
-		if(!mozel.$root) this.newPropertyMozels.add(mozel.gid);
+		if(!mozel.$root) this.newMozels.add(mozel.gid);
 
 		this.watchers[mozel.gid] = watcher;
 		this.unRegisterCallbacks[mozel.gid] = [
@@ -163,7 +176,7 @@ export default class MozelSync {
 		this.watchers[mozel.gid].destroy();
 		delete this.watchers[mozel.gid];
 		delete this.mozels[mozel.gid];
-		this.newPropertyMozels.delete(mozel.gid);
+		this.newMozels.delete(mozel.gid);
 		this.unRegisterCallbacks[mozel.gid].forEach(call);
 	}
 

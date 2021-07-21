@@ -74,26 +74,30 @@ export class MozelWatcher {
             {b: 1, foo: 'b'}								{b: 1, foo: 'b'}
      */
     /**
-     * Merges the update into the current Mozel.
-     * Returns the final update, with all overrides removed, and its own priority applied
-     * @param update
+     * Merges the commit into the current Mozel.
+     * Returns the final commit, with all overrides removed, and its own priority applied
+     * @param commit
      */
-    merge(update) {
-        if (update.baseVersion < this.historyMinBaseVersion) {
+    merge(commit) {
+        if (commit.baseVersion < this.historyMinBaseVersion) {
             // We cannot apply changes from before our history, as it would overwrite anything already committed.
-            throw new OutdatedUpdateError(update.baseVersion, this.historyMinBaseVersion);
+            throw new OutdatedUpdateError(commit.baseVersion, this.historyMinBaseVersion);
         }
-        const changes = this.overrideChangesFromHistory(update);
+        const changes = this.overrideChangesFromHistory(commit);
         // Update version
-        const version = Math.max(update.version, this.version);
+        const version = Math.max(commit.version, this.version);
         this.version = version;
         // Create merge commit, add to history and clean history
-        const merged = { ...update, changes, priority: this.priority, version };
+        const merged = { ...commit, changes, priority: this.priority, version };
         this.history.push(merged);
         this.autoCleanHistory();
         // Update Mozel
         this.mozel.$setData(changes, true);
         return merged;
+    }
+    setFullState(commit) {
+        this.mozel.$setData(commit.changes);
+        this.version = commit.version;
     }
     overrideChangesFromHistory(update) {
         let changes = { ...update.changes };

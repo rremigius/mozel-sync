@@ -19,7 +19,7 @@ export default class MozelSync {
     private _commitThrottled;
     get commitThrottled(): () => void;
     private mozels;
-    private newPropertyMozels;
+    private newMozels;
     private watchers;
     private unRegisterCallbacks;
     private destroyCallbacks;
@@ -40,13 +40,20 @@ export default class MozelSync {
         [x: number]: Commit;
     };
     hasChanges(): boolean;
-    setFullState(state: Record<alphanumeric, Commit>): Record<alphanumeric, Commit>;
     commit(): Record<alphanumeric, Commit>;
     /**
-     * Merges the given updates for each MozelWatcher
-     * @param updates
+     * Executes the given callback in an order that should allow watchers to be created and available by the time
+     * the commit can be handled. Works only for callbacks that will somehow initialize watchers based on commits (e.g. merge)
+     * @param commits
+     * @param callback
      */
-    merge(updates: Record<alphanumeric, Commit>): Record<alphanumeric, Commit>;
+    commitsOrderedForWatchers(commits: Record<alphanumeric, Commit>, callback: (watcher: MozelWatcher, commit: Commit) => void): void;
+    /**
+     * Merges the given commits for each MozelWatcher
+     * @param commits
+     */
+    merge(commits: Record<alphanumeric, Commit>): Record<alphanumeric, Commit>;
+    setFullState(commits: Record<alphanumeric, Commit>): void;
     getWatcher(gid: alphanumeric): MozelWatcher;
     register(mozel: Mozel): void;
     unregister(mozel: Mozel): void;
