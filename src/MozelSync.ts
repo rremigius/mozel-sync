@@ -99,7 +99,7 @@ export default class MozelSync {
 	 * @param updates
 	 */
 	merge(updates:Record<alphanumeric, Commit>) {
-		log.log("Merging changes to:", Object.keys(updates));
+		log.log("Merging changes:", Object.keys(updates));
 
 		/*
 		We are not sure in which order updates should be applied: the Mozel may not have been created yet before

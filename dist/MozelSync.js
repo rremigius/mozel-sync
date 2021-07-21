@@ -80,7 +80,7 @@ export default class MozelSync {
      * @param updates
      */
     merge(updates) {
-        log.log("Merging changes to:", Object.keys(updates));
+        log.log("Merging changes:", Object.keys(updates));
         /*
         We are not sure in which order updates should be applied: the Mozel may not have been created yet before
         we want to set its data. So we delay setting data and try again next loop, until we finish the queue or it will

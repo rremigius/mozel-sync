@@ -65,6 +65,7 @@ export default class MozelSyncClient {
         this.io.on('full-state', state => {
             log.info(`Received full state from server.`, state);
             this.sync.setFullState(state);
+            log.log(`New state:`, this.sync.model);
         });
         this.io.on('message', message => {
             log.info("Received message:", message);
