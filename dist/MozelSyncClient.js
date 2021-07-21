@@ -60,6 +60,7 @@ export default class MozelSyncClient {
                 return;
             log.info(`Received new commits:`, Object.keys(commits));
             this.sync.merge(commits);
+            log.log(`Changes merged. New model:`, this.sync.model);
         });
         this.io.on('full-state', state => {
             log.info(`Received full state from server.`, state);

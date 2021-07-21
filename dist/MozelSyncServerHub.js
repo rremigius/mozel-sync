@@ -60,6 +60,7 @@ export default class MozelSyncServerHub {
         if (this.isDefaultIO) {
             this.io.listen(this.port);
         }
+        log.info("MozelSyncServerHub started.");
         this.io.on('connection', socket => {
             const session = this.createSession();
             socket.emit('session-created', { id: session.id });

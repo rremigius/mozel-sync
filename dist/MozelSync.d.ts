@@ -24,7 +24,7 @@ export default class MozelSync {
     private unRegisterCallbacks;
     private destroyCallbacks;
     private registry?;
-    private model;
+    readonly model: Mozel;
     readonly historyLength: number;
     private active;
     priority: number;

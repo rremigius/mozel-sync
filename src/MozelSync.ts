@@ -41,7 +41,7 @@ export default class MozelSync {
 	private unRegisterCallbacks:Record<alphanumeric, Function[]> = {};
 	private destroyCallbacks:Function[] = [];
 	private registry?:Registry<Mozel>;
-	private model:Mozel;
+	public readonly model:Mozel;
 	public readonly historyLength:number;
 
 	private active:boolean = false;
