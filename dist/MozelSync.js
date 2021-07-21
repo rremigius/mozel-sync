@@ -101,8 +101,10 @@ export default class MozelSync {
                 }
                 merges[update.gid] = watcher.merge(update);
             }
-            if (newQueue.length === queue.length)
-                break; // no more progress
+            if (newQueue.length === queue.length) {
+                log.log(`Skipped ${queue.length} commits their GIDs are not registered in this MozelSync:`, Object.keys(queue));
+                break;
+            } // no more progress
             queue = newQueue;
         }
         return merges; // return updates with adapted priority
