@@ -49,6 +49,8 @@ export default class MozelSync {
 
 	public readonly events = new MozelSyncEvents();
 
+	// TODO: create a cheap check to know if models are out of sync
+
 	constructor(model:Mozel, options?:{
 		syncRegistry?:boolean,
 		priority?:number,

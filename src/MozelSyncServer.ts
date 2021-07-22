@@ -1,10 +1,8 @@
 import {Namespace, Server, Socket} from "socket.io";
 import MozelSync from "./MozelSync";
 import Log from "./log";
-import {isNumber} from "./utils";
 import Mozel from "mozel";
 import {Commit, OutdatedUpdateError} from "./MozelWatcher";
-import {Data, MozelData} from "mozel/dist/Mozel";
 
 const log = Log.instance("mozel-sync-server");
 

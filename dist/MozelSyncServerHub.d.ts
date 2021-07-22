@@ -7,14 +7,13 @@ export default class MozelSyncServerHub {
     readonly port: number;
     readonly Factory: typeof MozelFactory;
     readonly RootModel: typeof Mozel;
-    readonly createSessionModel: (id: string) => Mozel;
     private servers;
     constructor(options?: {
         io?: Server | number;
         Factory?: typeof MozelFactory;
         RootModel?: typeof Mozel;
-        createSessionModel?: (id: string) => Mozel;
     });
+    createSessionModel(id: string): Mozel;
     getServer(session: string): MozelSyncServer;
     createSession(): {
         id: string;

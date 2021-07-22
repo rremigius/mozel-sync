@@ -42,6 +42,7 @@ export default class MozelSync {
     active = false;
     priority;
     events = new MozelSyncEvents();
+    // TODO: create a cheap check to know if models are out of sync
     constructor(model, options) {
         const $options = options || {};
         this.priority = $options.priority || 0;
