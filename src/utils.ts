@@ -22,7 +22,8 @@ export {
 	isNumber,
 	throttle,
 	isEqual,
-	find
+	find,
+	map
 } from "lodash";
 
 export function interval(ms:number) {

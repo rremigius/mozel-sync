@@ -30,15 +30,15 @@ export class MozelWatcherEvents extends EventInterface {
 	changed = this.$event(MozelWatcherChangedEvent);
 }
 export class MozelWatcher {
-	readonly mozel:Mozel;
+	readonly model:Mozel;
 
 	private watchers:PropertyWatcher[] = [];
 	private _changes:Changes = {};
 	get changes() {
 		return this._changes;
 	}
-	private newMozels:Set<alphanumeric> = new Set<alphanumeric>();
-	private mozelsInUpdates:Set<alphanumeric> = new Set<alphanumeric>();
+	private newModels:Set<alphanumeric> = new Set<alphanumeric>();
+	private modelsInUpdates:Set<alphanumeric> = new Set<alphanumeric>();
 	private stopCallbacks:Function[] = [];
 
 	private priority:number;
@@ -66,15 +66,15 @@ export class MozelWatcher {
 	 */
 	constructor(mozel:Mozel, options?:{syncID?:string, priority?:number, historyLength?:number}) {
 		const $options = options || {};
-		this.mozel = mozel;
-		this.mozel.$events.destroyed.on(this.onDestroyed);
+		this.model = mozel;
+		this.model.$events.destroyed.on(this.onDestroyed);
 		this.syncID = $options.syncID || uuid();
 		this.historyMaxLength = $options.historyLength || 20;
 		this.priority = $options.priority || 0;
 	}
 
 	isNewMozel(mozel:Mozel) {
-		return this.newMozels.has(mozel.gid);
+		return this.newModels.has(mozel.gid);
 	}
 
 	/*
@@ -107,13 +107,13 @@ export class MozelWatcher {
 		this.autoCleanHistory();
 
 		// Update Mozel
-		this.mozel.$setData(changes, true);
+		this.model.$setData(changes, true);
 
 		return merged;
 	}
 
 	setFullState(commit:Commit) {
-		this.mozel.$setData(commit.changes);
+		this.model.$setData(commit.changes);
 		this.version = commit.version;
 	}
 
@@ -149,8 +149,8 @@ export class MozelWatcher {
 
 	clearChanges() {
 		this._changes = {};
-		this.newMozels.clear();
-		this.mozelsInUpdates.clear();
+		this.newModels.clear();
+		this.modelsInUpdates.clear();
 	}
 
 	getHistory() {
@@ -179,7 +179,7 @@ export class MozelWatcher {
 
 	createFullState() {
 		const update = this.createUpdateInfo();
-		update.changes = this.mozel.$export({shallow});
+		update.changes = this.model.$export({shallow});
 		return update;
 	}
 
@@ -245,7 +245,7 @@ export class MozelWatcher {
 
 	start(includeCurrentState = false) {
 		// Watch property changes
-		this.watchers.push(this.mozel.$watch('*', change => {
+		this.watchers.push(this.model.$watch('*', change => {
 			const lastUpdate = this.lastUpdate;
 			if(lastUpdate && this.isEqualChangeValue(change.newValue, lastUpdate.changes[change.changePath])) {
 				// If the change is a direct result of the last update, we don't need to include it in our changes.
@@ -253,55 +253,55 @@ export class MozelWatcher {
 				delete this._changes[change.changePath]; // also remove any change if already recorded
 				return;
 			}
-			this._changes[change.changePath] = this.mozel.$path(change.changePath);
+			this._changes[change.changePath] = this.model.$path(change.changePath);
 			this.events.changed.fire(new MozelWatcherChangedEvent(change.changePath));
 		}));
 
 		// Watch collection changes
-		this.mozel.$eachProperty(property => {
+		this.model.$eachProperty(property => {
 			if(!property.isCollectionType()) return;
-			this.watchers.push(this.mozel.$watch(`${property.name}.*`, change => {
+			this.watchers.push(this.model.$watch(`${property.name}.*`, change => {
 				const lastUpdate = this.lastUpdate;
-				if(lastUpdate && this.isEqualChangeValue(this.mozel.$get(property.name), lastUpdate.changes[property.name])) {
+				if(lastUpdate && this.isEqualChangeValue(this.model.$get(property.name), lastUpdate.changes[property.name])) {
 					// If the change is a direct result of the last update, we don't need to include it in our changes.
 					// We don't need to tell whoever sent the update to also apply the same changes of their own update.
 					delete this._changes[property.name]; // also remove any change if already recorded
 					return;
 				}
-				this._changes[property.name] = this.mozel.$get(property.name);
+				this._changes[property.name] = this.model.$get(property.name);
 				this.events.changed.fire(new MozelWatcherChangedEvent(change.changePath));
 			}, {debounce: 0}));
 		});
 
 		// Keep track of newly created Mozels
 		this.stopCallbacks.push(
-			this.mozel.$registry.events.added.on(event => {
+			this.model.$registry.events.added.on(event => {
 				const mozel = event.item;
-				if(!(mozel instanceof Mozel) || this.mozelsInUpdates.has(mozel.gid)) return;
+				if(!(mozel instanceof Mozel) || this.modelsInUpdates.has(mozel.gid)) return;
 
 				/*
 				We only add newly created Mozels that are not already mentioned in updates (we don't need to tell
 				the receiver to create the Mozel that they created).
 				 */
-				this.newMozels.add(mozel.gid);
+				this.newModels.add(mozel.gid);
 			})
 		);
 
 		if(includeCurrentState) {
-			this._changes = this.mozel.$export({shallow: true, nonDefault: true});
+			this._changes = this.model.$export({shallow: true, nonDefault: true});
 			this.events.changed.fire(new MozelWatcherChangedEvent("*"));
 		}
 	}
 
 	stop() {
 		for(let watcher of this.watchers) {
-			this.mozel.$removeWatcher(watcher);
+			this.model.$removeWatcher(watcher);
 		}
 		this.stopCallbacks.forEach(call);
 	}
 
 	destroy() {
 		this.stop();
-		this.mozel.$events.destroyed.off(this.onDestroyed);
+		this.model.$events.destroyed.off(this.onDestroyed);
 	}
 }

@@ -3,7 +3,7 @@ import EventInterface from "event-interface-mixin";
 import {v4 as uuid} from "uuid";
 import Log from "./log";
 import {Commit, MozelWatcher} from "./MozelWatcher";
-import {call, find, forEach, isNumber, mapValues, throttle, values} from "./utils";
+import {call, find, forEach, isNumber, map, mapValues, throttle, values} from "./utils";
 import Mozel, {MozelFactory, Registry} from "mozel";
 import {MozelData} from "mozel/dist/Mozel";
 
@@ -70,21 +70,47 @@ export default class MozelSync {
 		}
 	}
 
+	/**
+	 * Determines whether or not a Mozel should be registered and watched by this MozelSync.
+	 * Can be overridden for application-specific control. Defaults to always-true.
+	 * @param mozel
+	 */
+	shouldRegister(mozel:Mozel) {
+		return true;
+	}
+
+	/**
+	 * Determines whether or not a Mozel should be synced (both up and down) by this MozelSync.
+	 * Can be overridden for application-specific control. Defaults to always-true.
+	 * @param mozel
+	 * @param syncID
+	 */
+	shouldSync(mozel:Mozel, syncID:string) {
+		return true;
+	}
+
 	createFullState() {
-		return mapValues(this.watchers, watcher => watcher.createFullState());
+		const state:Record<alphanumeric, Commit> = {};
+		forEach(this.watchers, (watcher, gid) => {
+			if(!this.shouldSync(watcher.model, this.id)) return;
+			state[gid] = watcher.createFullState();
+		});
+		return state;
 	}
 
 	hasChanges() {
-		return !!find(this.watchers, watcher => watcher.hasChanges());
+		return !!find(this.watchers, watcher => this.shouldSync(watcher.model, this.id) && watcher.hasChanges());
 	}
 
 	commit() {
 		const updates:Record<alphanumeric, Commit> = {};
 		forEach(this.watchers, watcher => {
+			if(!this.shouldSync(watcher.model, this.id)) return;
+
 			const update = watcher.commit();
 			if(!update) return;
 
-			updates[watcher.mozel.gid] = update;
+			updates[watcher.model.gid] = update;
 		});
 		this.newMozels.clear();
 		this.events.newCommits.fire(new MozelSyncNewCommitsEvent(updates));
@@ -135,7 +161,9 @@ export default class MozelSync {
 		log.log("Merging commits:", Object.keys(commits));
 		const merges:Record<alphanumeric, Commit> = {}
 		this.commitsOrderedForWatchers(commits, (watcher, commit) => {
-			merges[watcher.mozel.gid] = {...watcher.merge(commit), priority: this.priority};
+			if(!this.shouldSync(watcher.model, commit.syncID)) return;
+
+			merges[watcher.model.gid] = {...watcher.merge(commit), priority: this.priority};
 		});
 		return merges;
 	}
@@ -143,6 +171,8 @@ export default class MozelSync {
 	setFullState(commits:Record<alphanumeric, Commit>) {
 		log.log("Setting full state:", Object.keys(commits));
 		this.commitsOrderedForWatchers(commits, (watcher, commit) => {
+			if(!this.shouldSync(watcher.model, commit.syncID)) return;
+
 			watcher.setFullState(commit);
 		});
 	}
@@ -192,7 +222,10 @@ export default class MozelSync {
 		this.registry = registry;
 		this.destroyCallbacks = [
 			...this.destroyCallbacks,
-			registry.events.added.on(event => this.register(event.item as Mozel)),
+			registry.events.added.on(event => {
+				const model = event.item as Mozel;
+				if(this.shouldRegister(model)) this.register(model);
+			}),
 			registry.events.removed.on(event => this.unregister(event.item as Mozel))
 		]
 		// Also register current Mozels
@@ -212,8 +245,8 @@ export default class MozelSync {
 	destroy(destroyMozels = false) {
 		this.destroyCallbacks.forEach(call);
 		values(this.watchers).forEach(watcher => {
-			this.unregister(watcher.mozel);
-			if(destroyMozels) watcher.mozel.$destroy();
+			this.unregister(watcher.model);
+			if(destroyMozels) watcher.model.$destroy();
 		});
 	}
 }

@@ -547,4 +547,117 @@ describe("MozelSync", () => {
 			})
 		});
 	});
+	describe("shouldRegister", () => {
+		it("determines whether or not a Mozel is synced", () => {
+			class Foo extends Mozel {
+				@string()
+				declare type?:string;
+				@property(Foo)
+				declare foo?:Foo;
+			}
+			class FooSync extends MozelSync {
+				shouldRegister(mozel: Foo): boolean {
+					return mozel.type === 'foo';
+				}
+			}
+			const model = Foo.create<Foo>({gid: 'root'});
+			const sync = new FooSync(model, {syncRegistry: true});
+
+			model.foo = {
+				gid: 'root.foo',
+				type: 'foo',
+				foo: { gid: 'root.foo.foo', type: 'bar' }
+			} as any;
+
+			assert.ok(sync.has(model), "root registered");
+			assert.ok(sync.has(model.foo!), "root.foo registered");
+			assert.notOk(sync.has(model.foo!.foo!), "root.foo.foo excluded");
+		});
+	});
+	describe("shouldSync", () => {
+		it("determines whether or not a Mozel is included in commits and full state", () => {
+			class Foo extends Mozel {
+				@string()
+				declare type:string;
+				@string()
+				declare foo:string;
+				@collection(Foo)
+				declare foos:Collection<Foo>;
+			}
+			class FooSync extends MozelSync {
+				shouldSync(mozel: Foo): boolean {
+					return mozel.type === 'foo';
+				}
+			}
+			const model = Foo.create<Foo>({
+				gid: 'root',
+				foos: [
+					{gid: 'root.foos.0', type: 'foo'},
+					{gid: 'root.foos.1', type: 'bar'},
+					{gid: 'root.foos.2', type: 'foo'}
+				]
+			});
+			const sync = new FooSync(model, {syncRegistry: true});
+			sync.start();
+
+			model.foos.get(0)!.foo = 'Foos0';
+			model.foos.get(1)!.foo = 'Foos1';
+			model.foos.get(2)!.foo = 'Foos2';
+
+			const commits = sync.commit();
+			const fullState = sync.createFullState();
+
+			assert.deepEqual(Object.keys(commits).sort(), ['root.foos.0', 'root.foos.2'], "Only bar type included in commits");
+			assert.deepEqual(Object.keys(fullState).sort(), ['root.foos.0', 'root.foos.2'], "Only foo type included in full state");
+		});
+		it("determines whether or not commits or states for a Mozel are applied", () => {
+			class Foo extends Mozel {
+				@string()
+				declare owner:string;
+				@string()
+				declare foo:string;
+				@collection(Foo)
+				declare foos:Collection<Foo>;
+			}
+			class FooSync extends MozelSync {
+				shouldSync(mozel: Foo, syncID:string): boolean {
+					return mozel.owner === syncID;
+				}
+			}
+			const init = {
+				gid: 'root',
+				foos: [
+					{gid: 'root.foos.0', owner: 'foo'},
+					{gid: 'root.foos.1', owner: 'bar'},
+					{gid: 'root.foos.2', owner: 'foo'}
+				]
+			};
+			const model1 = Foo.create<Foo>(init);
+			const model2 = Foo.create<Foo>(init);
+
+			const sync1 = new FooSync(model1, {syncRegistry: true});
+			sync1.id = 'foo';
+			const sync2 = new MozelSync(model2, {syncRegistry: true});
+			sync2.id = 'bar';
+
+			sync1.start();
+			sync2.start();
+
+			model2.foos.get(0)!.foo = 'Foos0';
+			model2.foos.get(1)!.foo = 'Foos1';
+			model2.foos.get(2)!.foo = 'Foos2';
+
+			const commits = sync2.commit();
+			const fullState = sync2.createFullState();
+
+			sync1.merge(commits);
+			sync1.setFullState(fullState);
+
+			assert.deepEqual(
+				model1.foos.map(foo => foo.foo),
+				[undefined, 'Foos1', undefined],
+				"Only 'bar' commit was applied"
+			);
+		});
+	});
 });
