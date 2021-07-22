@@ -25,7 +25,7 @@ export default class MozelSyncClient {
     message(payload: any): void;
     onMessageReceived(payload: unknown): void;
     sendFullState(): void;
-    connect(): Promise<string>;
+    connect(url?: string): Promise<string>;
     disconnect(callOnDisconnected?: boolean): void;
     onConnected(id: string): void;
     onDisconnected(id: string): void;

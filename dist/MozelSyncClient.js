@@ -38,8 +38,7 @@ export default class MozelSyncClient {
             this._session = session.id;
             this.sessionOwner = true;
             this.disconnect(false);
-            this.url = this.server + '/' + session.id;
-            this.connect().catch(log.error);
+            this.connect(this.server + '/' + session.id).catch(log.error);
         });
         socket.on('connection', event => {
             log.info(`MozelSyncClient connected to server: ${event.serverSyncID}`);
@@ -101,10 +100,11 @@ export default class MozelSyncClient {
         log.log(`Sending full state to server:`, state);
         this.io.emit('full-state', state);
     }
-    connect() {
-        if (!this._io) {
+    connect(url) {
+        if (url)
+            this._io = io(url);
+        if (!this._io)
             this._io = io(this.url);
-        }
         this.setupIO(this._io);
         this._connecting = new Promise((resolve, reject) => {
             this._connectingPromiseCallbacks.resolve = resolve;
