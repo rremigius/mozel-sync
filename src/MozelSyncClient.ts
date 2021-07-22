@@ -69,9 +69,6 @@ export default class MozelSyncClient {
 			log.info(`MozelSyncClient connected to server: ${event.serverSyncID}`);
 			this.sync.id = event.id;
 			this._serverSyncID = event.serverSyncID;
-			if(this.sessionOwner) {
-				this.sendFullState();
-			}
 			this._connectingPromiseCallbacks.resolve(event.id);
 			this._state = State.CONNECTED;
 			this.onConnected(event.id);

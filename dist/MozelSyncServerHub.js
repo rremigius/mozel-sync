@@ -58,7 +58,7 @@ export default class MozelSyncServerHub {
         return { id };
     }
     createSyncServer(model, io) {
-        return new MozelSyncServer(model, { io, useClientModel: this.useClientModel });
+        return new MozelSyncServer(model, { io });
     }
     onSessionCreated(model, session) {
         // for override

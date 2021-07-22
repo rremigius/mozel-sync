@@ -8,7 +8,6 @@ export default class MozelSyncServer {
     readonly sync: MozelSync;
     readonly port: number;
     readonly model: Mozel;
-    readonly useClientModel: boolean;
     private sessionOwner?;
     readonly destroyCallbacks: Function[];
     private clients;
@@ -18,12 +17,10 @@ export default class MozelSyncServer {
      * @param options
      * 			options.io				Custom Socket IO Server or Namespace
      * 			options.port			Port number for built-in SocketIO Server (if `io` is provided, port is not used)
-     * 			options.firstUserState	If `true`, will not send the server state to the first client, but will accept their state instead.
      */
     constructor(model: Mozel, options?: {
         io?: Server | Namespace;
         port?: number;
-        useClientModel?: boolean;
     });
     start(): void;
     stop(): void;

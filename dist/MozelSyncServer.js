@@ -9,7 +9,6 @@ export default class MozelSyncServer {
     sync;
     port;
     model;
-    useClientModel;
     sessionOwner;
     destroyCallbacks = [];
     clients = {};
@@ -19,12 +18,10 @@ export default class MozelSyncServer {
      * @param options
      * 			options.io				Custom Socket IO Server or Namespace
      * 			options.port			Port number for built-in SocketIO Server (if `io` is provided, port is not used)
-     * 			options.firstUserState	If `true`, will not send the server state to the first client, but will accept their state instead.
      */
     constructor(model, options) {
         const $options = options || {};
         this.model = model;
-        this.useClientModel = $options.useClientModel === true;
         this.sync = this.createSync(model);
         this.sync.syncRegistry(model.$registry);
         let io = $options.io;
@@ -105,10 +102,8 @@ export default class MozelSyncServer {
             this.sessionOwner = id;
         log.log(`Sending connection info to ${socket.id}.`);
         socket.emit('connection', { id: socket.id, serverSyncID: this.sync.id });
-        if (!this.useClientModel || this.sessionOwner !== id) {
-            log.log(`Sending full state to ${socket.id}.`);
-            socket.emit('full-state', this.sync.createFullState());
-        }
+        log.log(`Sending full state to ${socket.id}.`);
+        socket.emit('full-state', this.sync.createFullState());
         this.onUserConnected(id);
     }
     removeUser(id) {

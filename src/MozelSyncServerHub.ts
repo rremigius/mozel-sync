@@ -79,7 +79,7 @@ export default class MozelSyncServerHub {
 	}
 
 	createSyncServer(model:Mozel, io:Namespace) {
-		return new MozelSyncServer(model, {io, useClientModel: this.useClientModel});
+		return new MozelSyncServer(model, {io});
 	}
 
 	onSessionCreated(model:Mozel, session:{id:string}) {
