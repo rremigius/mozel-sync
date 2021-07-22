@@ -20,6 +20,7 @@ export default class MozelSyncServerHub {
     createSession(): {
         id: string;
     };
+    createSyncServer(model: Mozel): MozelSyncServer;
     onSessionCreated(model: Mozel, session: {
         id: string;
     }): void;

@@ -53,7 +53,7 @@ export default class MozelSyncServerHub {
 		const namespace = this.io.of('/' + id);
 
 		const model = this.createSessionModel(id);
-		const server = new MozelSyncServer(model, {io: namespace, useClientModel: this.useClientModel});
+		const server = this.createSyncServer(model);
 		this.servers[id] = server;
 		server.start();
 
@@ -68,6 +68,10 @@ export default class MozelSyncServerHub {
 
 		this.onSessionCreated(model, {id});
 		return {id};
+	}
+
+	createSyncServer(model:Mozel) {
+		return new MozelSyncServer(model, {io: this.io, useClientModel: this.useClientModel});
 	}
 
 	onSessionCreated(model:Mozel, session:{id:string}) {

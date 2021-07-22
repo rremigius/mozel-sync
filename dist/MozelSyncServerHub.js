@@ -40,7 +40,7 @@ export default class MozelSyncServerHub {
         log.info(`Creating session: ${id}...`);
         const namespace = this.io.of('/' + id);
         const model = this.createSessionModel(id);
-        const server = new MozelSyncServer(model, { io: namespace, useClientModel: this.useClientModel });
+        const server = this.createSyncServer(model);
         this.servers[id] = server;
         server.start();
         namespace.on('disconnected', async () => {
@@ -53,6 +53,9 @@ export default class MozelSyncServerHub {
         });
         this.onSessionCreated(model, { id });
         return { id };
+    }
+    createSyncServer(model) {
+        return new MozelSyncServer(model, { io: this.io, useClientModel: this.useClientModel });
     }
     onSessionCreated(model, session) {
         // for override
