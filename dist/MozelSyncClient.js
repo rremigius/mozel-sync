@@ -101,10 +101,7 @@ export default class MozelSyncClient {
         this.io.emit('full-state', state);
     }
     connect(url) {
-        if (url)
-            this._io = io(url);
-        if (!this._io)
-            this._io = io(this.url);
+        this._io = io(url || this.url);
         this.setupIO(this._io);
         this._connecting = new Promise((resolve, reject) => {
             this._connectingPromiseCallbacks.resolve = resolve;
