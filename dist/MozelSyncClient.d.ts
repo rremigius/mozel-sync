@@ -12,6 +12,8 @@ export default class MozelSyncClient {
     private sessionOwner;
     private _session?;
     get session(): string | undefined;
+    private _serverSyncId?;
+    get serverSyncId(): string | undefined;
     constructor(model: Mozel, server: string, session?: string);
     initIO(): void;
     createSync(model: Mozel): MozelSync;

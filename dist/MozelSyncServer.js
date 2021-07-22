@@ -104,7 +104,7 @@ export default class MozelSyncServer {
         if (Object.keys(this.clients).length === 1)
             this.sessionOwner = id;
         log.log(`Sending connection info to ${socket.id}.`);
-        socket.emit('connection', { id: socket.id });
+        socket.emit('connection', { id: socket.id, serverSyncID: this.sync.id });
         if (!this.useClientModel || this.sessionOwner !== id) {
             log.log(`Sending full state to ${socket.id}.`);
             socket.emit('full-state', this.sync.createFullState());

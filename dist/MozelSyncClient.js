@@ -15,6 +15,8 @@ export default class MozelSyncClient {
     sessionOwner = false;
     _session;
     get session() { return this._session; }
+    _serverSyncId;
+    get serverSyncId() { return this._serverSyncId; }
     constructor(model, server, session) {
         this.model = model;
         this._session = session;
@@ -37,8 +39,9 @@ export default class MozelSyncClient {
             this._io.connect();
         });
         this.io.on('connection', event => {
-            log.info("MozelSyncClient connected.");
+            log.info(`MozelSyncClient connected to server: ${event.serverSyncId}`);
             this.sync.id = event.id;
+            this._serverSyncId = event.serverSyncId;
             if (this.sessionOwner) {
                 this.sendFullState();
             }
