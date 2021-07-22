@@ -2,6 +2,7 @@ import { Namespace, Server, Socket } from "socket.io";
 import MozelSync from "./MozelSync";
 import Mozel from "mozel";
 import { Commit } from "./MozelWatcher";
+import { alphanumeric } from "validation-kit";
 export default class MozelSyncServer {
     readonly io: Server | Namespace;
     readonly isDefaultIO: boolean;
@@ -25,8 +26,10 @@ export default class MozelSyncServer {
     start(): void;
     stop(): void;
     createSync(model: Mozel): MozelSync;
-    initUser(id: string, socket: Socket): void;
-    removeUser(id: string): void;
+    handleConnection(id: string, socket: Socket): void;
+    handleDisconnect(socket: Socket): void;
+    handlePush(socket: Socket, commits: Record<alphanumeric, Commit>): void;
+    handleFullState(socket: Socket, state: Record<alphanumeric, Commit>): void;
     onUserConnected(id: string): void;
     onUserDisconnected(id: string): void;
     onFullStateUpdate(state: Record<string, Commit>): void;

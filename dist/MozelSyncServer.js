@@ -38,38 +38,16 @@ export default class MozelSyncServer {
     start() {
         this.sync.start();
         this.io.on('connection', (socket) => {
-            this.initUser(socket.id, socket);
+            this.handleConnection(socket.id, socket);
             socket.on('disconnect', () => {
-                log.info(`Client disconnected: ${socket.id}`);
-                this.removeUser(socket.id);
+                this.handleDisconnect(socket);
             });
-            // Listen to incoming updates
+            // Listen to incoming commits
             socket.on('push', (commits) => {
-                log.log(`Received commits from client '${socket.id}':`, Object.keys(commits));
-                try {
-                    const merged = this.sync.merge(commits);
-                    log.log(`Pushing merged commit from client '${socket.id}' to all clients:`, Object.keys(commits));
-                    socket.broadcast.emit('push', merged); // send merged update to others
-                }
-                catch (e) {
-                    log.error(e);
-                    if (e instanceof OutdatedUpdateError) {
-                        log.log(`Sending full state to client '${socket.id}' after error in merge.`);
-                        socket.emit('full-state', this.sync.createFullState());
-                    }
-                }
+                this.handlePush(socket, commits);
             });
             socket.on('full-state', (state) => {
-                log.log(`Received full state from client '${socket.id}.'`);
-                try {
-                    this.sync.setFullState(state);
-                    this.onFullStateUpdate(state);
-                    log.log(`Sending full state from client '${socket.id} to all clients.'`);
-                    socket.broadcast.emit('full-state', state);
-                }
-                catch (e) {
-                    log.error(e);
-                }
+                this.handleFullState(socket, state);
             });
             socket.on('message', (payload) => {
                 log.log(`Passing message from client '${socket.id}' to all clients.'`);
@@ -86,7 +64,7 @@ export default class MozelSyncServer {
         log.info("MozelSyncServer started.");
     }
     stop() {
-        if (this.io instanceof Server)
+        if (this.io instanceof Server && this.isDefaultIO)
             this.io.close();
         if (this.isDefaultIO) {
             this.sync.stop();
@@ -95,19 +73,47 @@ export default class MozelSyncServer {
     createSync(model) {
         return new MozelSync(model, { priority: 1, autoCommit: 100 });
     }
-    initUser(id, socket) {
+    handleConnection(id, socket) {
         log.info(`Client ${id} connected.`);
         this.clients[id] = { socket };
         if (Object.keys(this.clients).length === 1)
             this.sessionOwner = id;
         log.log(`Sending connection info to ${socket.id}.`);
-        socket.emit('connection', { id: socket.id, serverSyncID: this.sync.id });
+        socket.emit('connected', { id: socket.id, serverSyncID: this.sync.id });
         log.log(`Sending full state to ${socket.id}.`);
         socket.emit('full-state', this.sync.createFullState());
         this.onUserConnected(id);
     }
-    removeUser(id) {
-        this.onUserDisconnected(id);
+    handleDisconnect(socket) {
+        log.info(`Client disconnected: ${socket.id}`);
+        this.onUserDisconnected(socket.id);
+    }
+    handlePush(socket, commits) {
+        log.log(`Received commits from client '${socket.id}':`, Object.keys(commits));
+        try {
+            const merged = this.sync.merge(commits);
+            log.log(`Pushing merged commit from client '${socket.id}' to all clients:`, Object.keys(commits));
+            socket.broadcast.emit('push', merged); // send merged update to others
+        }
+        catch (e) {
+            log.error(e);
+            if (e instanceof OutdatedUpdateError) {
+                log.log(`Sending full state to client '${socket.id}' after error in merge.`);
+                socket.emit('full-state', this.sync.createFullState());
+            }
+        }
+    }
+    handleFullState(socket, state) {
+        log.log(`Received full state from client '${socket.id}.'`);
+        try {
+            this.sync.setFullState(state);
+            this.onFullStateUpdate(state);
+            log.log(`Sending full state from client '${socket.id} to all clients.'`);
+            socket.broadcast.emit('full-state', state);
+        }
+        catch (e) {
+            log.error(e);
+        }
     }
     onUserConnected(id) {
         // For overide

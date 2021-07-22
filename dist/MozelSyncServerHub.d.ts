@@ -25,6 +25,7 @@ export default class MozelSyncServerHub {
     }): {
         id: string;
     };
+    destroySession(id: string, namespace: Namespace): void;
     createSyncServer(model: Mozel, io: Namespace): MozelSyncServer;
     onSessionCreated(model: Mozel, session: {
         id: string;

@@ -123,7 +123,7 @@ export default class MozelSync {
                 callback(watcher, commit);
             }
             if (newQueue.length === queue.length) {
-                log.log(`Skipped ${queue.length} commits their GIDs are not registered in this MozelSync:`, Object.keys(queue));
+                log.log(`Skipped ${queue.length} commits; their GIDs are not registered in this MozelSync:`, queue.map(commit => commit.gid));
                 break;
             } // no more progress
             queue = newQueue;
