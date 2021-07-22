@@ -3,6 +3,12 @@ import MozelSync from "./MozelSync";
 import Log from "log-control";
 import { call } from "./utils";
 const log = Log.instance("mozel-sync-client");
+export var State;
+(function (State) {
+    State[State["DISCONNECTED"] = 0] = "DISCONNECTED";
+    State[State["CONNECTING"] = 1] = "CONNECTING";
+    State[State["CONNECTED"] = 2] = "CONNECTED";
+})(State || (State = {}));
 export default class MozelSyncClient {
     _io;
     get io() { return this._io; }
@@ -10,10 +16,16 @@ export default class MozelSyncClient {
     model;
     sync;
     _connectingPromiseCallbacks = { resolve: (id) => { }, reject: (err) => { } };
-    _connecting;
+    _connecting = new Promise((resolve, reject) => {
+        this._connectingPromiseCallbacks.resolve = resolve;
+        this._connectingPromiseCallbacks.reject = reject;
+    });
     get connecting() {
         return this._connecting;
     }
+    _state = State.DISCONNECTED;
+    get state() { return this._state; }
+    ;
     destroyCallbacks;
     disconnectCallbacks;
     server;
@@ -48,11 +60,13 @@ export default class MozelSyncClient {
                 this.sendFullState();
             }
             this._connectingPromiseCallbacks.resolve(event.id);
+            this._state = State.CONNECTED;
             this.onConnected(event.id);
         });
         socket.on('error', error => {
             log.error("Could not connect:", error);
             this._connectingPromiseCallbacks.reject(error);
+            this._state = State.DISCONNECTED;
         });
         socket.on('push', commits => {
             for (let gid of Object.keys(commits)) {
@@ -103,10 +117,13 @@ export default class MozelSyncClient {
     connect(url) {
         this._io = io(url || this.url);
         this.setupIO(this._io);
-        this._connecting = new Promise((resolve, reject) => {
-            this._connectingPromiseCallbacks.resolve = resolve;
-            this._connectingPromiseCallbacks.reject = reject;
-        });
+        if (this._state === State.CONNECTED) { // start over
+            this._connecting = new Promise((resolve, reject) => {
+                this._connectingPromiseCallbacks.resolve = resolve;
+                this._connectingPromiseCallbacks.reject = reject;
+            });
+        }
+        this._state = State.CONNECTING;
         return this._connecting;
     }
     disconnect(callOnDisconnected = true) {

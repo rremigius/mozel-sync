@@ -6,6 +6,9 @@ import Mozel from "mozel";
 
 const log = Log.instance("mozel-sync-client");
 
+export enum State {
+	DISCONNECTED, CONNECTING, CONNECTED
+}
 export default class MozelSyncClient {
 	protected _io!:Socket;
 	get io() { return this._io };
@@ -14,10 +17,16 @@ export default class MozelSyncClient {
 	readonly sync:MozelSync;
 
 	private _connectingPromiseCallbacks = {resolve:(id:string)=>{}, reject:(err:Error)=>{}};
-	private _connecting?:Promise<string>;
+	private _connecting = new Promise((resolve, reject) => {
+		this._connectingPromiseCallbacks.resolve = resolve;
+		this._connectingPromiseCallbacks.reject = reject;
+	});
 	get connecting() {
 		return this._connecting;
 	}
+
+	private _state:State = State.DISCONNECTED;
+	get state() { return this._state };
 
 	private destroyCallbacks:Function[];
 	private disconnectCallbacks:Function[];
@@ -57,11 +66,13 @@ export default class MozelSyncClient {
 				this.sendFullState();
 			}
 			this._connectingPromiseCallbacks.resolve(event.id);
+			this._state = State.CONNECTED;
 			this.onConnected(event.id);
 		});
 		socket.on('error', error => {
 			log.error("Could not connect:", error);
 			this._connectingPromiseCallbacks.reject(error);
+			this._state = State.DISCONNECTED;
 		})
 		socket.on('push', commits => {
 			for(let gid of Object.keys(commits)) {
@@ -122,10 +133,13 @@ export default class MozelSyncClient {
 
 		this.setupIO(this._io);
 
-		this._connecting = new Promise((resolve, reject) => {
-			this._connectingPromiseCallbacks.resolve = resolve;
-			this._connectingPromiseCallbacks.reject = reject;
-		});
+		if(this._state === State.CONNECTED) { // start over
+			this._connecting = new Promise((resolve, reject) => {
+				this._connectingPromiseCallbacks.resolve = resolve;
+				this._connectingPromiseCallbacks.reject = reject;
+			});
+		}
+		this._state = State.CONNECTING;
 		return this._connecting;
 	}
 
