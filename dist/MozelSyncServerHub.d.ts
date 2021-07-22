@@ -1,4 +1,4 @@
-import { Server } from "socket.io";
+import { Namespace, Server } from "socket.io";
 import MozelSyncServer from "./MozelSyncServer";
 import Mozel, { MozelFactory } from "mozel";
 export default class MozelSyncServerHub {
@@ -20,7 +20,7 @@ export default class MozelSyncServerHub {
     createSession(): {
         id: string;
     };
-    createSyncServer(model: Mozel): MozelSyncServer;
+    createSyncServer(model: Mozel, io: Namespace): MozelSyncServer;
     onSessionCreated(model: Mozel, session: {
         id: string;
     }): void;

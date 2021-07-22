@@ -1,4 +1,4 @@
-import {Server} from "socket.io";
+import {Namespace, Server} from "socket.io";
 import {forEach, isNumber} from "./utils";
 import {v4 as uuid} from "uuid";
 import MozelSyncServer from "./MozelSyncServer";
@@ -53,7 +53,7 @@ export default class MozelSyncServerHub {
 		const namespace = this.io.of('/' + id);
 
 		const model = this.createSessionModel(id);
-		const server = this.createSyncServer(model);
+		const server = this.createSyncServer(model, namespace);
 		this.servers[id] = server;
 		server.start();
 
@@ -70,8 +70,8 @@ export default class MozelSyncServerHub {
 		return {id};
 	}
 
-	createSyncServer(model:Mozel) {
-		return new MozelSyncServer(model, {io: this.io, useClientModel: this.useClientModel});
+	createSyncServer(model:Mozel, io:Namespace) {
+		return new MozelSyncServer(model, {io, useClientModel: this.useClientModel});
 	}
 
 	onSessionCreated(model:Mozel, session:{id:string}) {
