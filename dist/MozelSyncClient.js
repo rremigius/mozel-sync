@@ -26,15 +26,17 @@ export default class MozelSyncClient {
     _state = State.DISCONNECTED;
     get state() { return this._state; }
     ;
-    destroyCallbacks;
-    disconnectCallbacks;
-    server;
-    url;
-    sessionOwner = false;
+    _isSessionOwner = false;
+    get isSessionOwner() { return this._isSessionOwner; }
+    ;
     _session;
     get session() { return this._session; }
     _serverSyncID;
     get serverSyncID() { return this._serverSyncID; }
+    destroyCallbacks;
+    disconnectCallbacks;
+    server;
+    url;
     constructor(model, server, session) {
         this.model = model;
         this._session = session;
@@ -47,7 +49,7 @@ export default class MozelSyncClient {
     }
     setupIO(socket) {
         socket.on('connection-hub', (hubInfo) => {
-            log.info("Connected to hub");
+            log.info("Connected to hub.");
             const config = {};
             if (hubInfo.useClientModel) {
                 config.state = this.sync.createFullState();
@@ -57,7 +59,7 @@ export default class MozelSyncClient {
         socket.on('session-created', session => {
             log.info("Session created.");
             this._session = session.id;
-            this.sessionOwner = true;
+            this._isSessionOwner = true;
             this.disconnect(false);
             this.connect(this.server + '/' + session.id).catch(log.error);
         });
@@ -121,7 +123,9 @@ export default class MozelSyncClient {
         this.io.emit('full-state', state);
     }
     connect(url) {
-        this._io = io(url || this.url);
+        if (url)
+            this.url = url;
+        this._io = io(this.url);
         this.setupIO(this._io);
         if (this._state === State.CONNECTED) { // start over
             this._connecting = new Promise((resolve, reject) => {
