@@ -1,6 +1,9 @@
 import { Namespace, Server } from "socket.io";
 import MozelSyncServer from "./MozelSyncServer";
 import Mozel, { MozelFactory } from "mozel";
+import { Data } from "mozel/dist/Mozel";
+import { alphanumeric } from "validation-kit";
+import { Commit } from "./MozelWatcher";
 export default class MozelSyncServerHub {
     readonly io: Server;
     readonly isDefaultIO: boolean;
@@ -15,9 +18,11 @@ export default class MozelSyncServerHub {
         RootModel?: typeof Mozel;
         useClientModel?: boolean;
     });
-    createSessionModel(id: string): Mozel;
+    createSessionModel(id: string, data?: Data): Mozel;
     getServer(session: string): MozelSyncServer;
-    createSession(): {
+    createSession(config?: {
+        state?: Record<alphanumeric, Commit>;
+    }): {
         id: string;
     };
     createSyncServer(model: Mozel, io: Namespace): MozelSyncServer;

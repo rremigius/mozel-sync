@@ -46,6 +46,13 @@ export default class MozelSyncClient {
         this.disconnectCallbacks = [];
     }
     setupIO(socket) {
+        socket.on('connection-hub', (hubInfo) => {
+            const config = {};
+            if (hubInfo.useClientModel) {
+                config.state = this.sync.createFullState();
+            }
+            socket.emit('create-session', config);
+        });
         socket.on('session-created', session => {
             this._session = session.id;
             this.sessionOwner = true;

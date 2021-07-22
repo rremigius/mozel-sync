@@ -28,19 +28,22 @@ export default class MozelSyncServerHub {
             this.isDefaultIO = true;
         }
     }
-    createSessionModel(id) {
+    createSessionModel(id, data) {
         const factory = new this.Factory();
-        return factory.createRoot(this.RootModel, { gid: 'root' });
+        return factory.createRoot(this.RootModel, data || { gid: 'root' });
     }
     getServer(session) {
         return this.servers[session];
     }
-    createSession() {
+    createSession(config) {
         const id = uuid();
         log.info(`Creating session: ${id}...`);
         const namespace = this.io.of('/' + id);
         const model = this.createSessionModel(id);
         const server = this.createSyncServer(model, namespace);
+        if (this.useClientModel && config && config.state) {
+            server.sync.setFullState(config.state);
+        }
         this.servers[id] = server;
         server.start();
         namespace.on('disconnected', async () => {
@@ -66,8 +69,11 @@ export default class MozelSyncServerHub {
         }
         log.info("MozelSyncServerHub started.");
         this.io.on('connection', socket => {
-            const session = this.createSession();
-            socket.emit('session-created', { id: session.id });
+            socket.emit('connection-hub', { useClientModel: this.useClientModel });
+            socket.on('create-session', (config) => {
+                const session = this.createSession(config);
+                socket.emit('session-created', { id: session.id });
+            });
         });
     }
     stop() {
