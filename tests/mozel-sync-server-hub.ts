@@ -1,7 +1,7 @@
 import {assert} from "chai";
 import MozelSyncServerHub from "../src/MozelSyncServerHub";
 import MozelSyncClient from "../src/MozelSyncClient";
-import Mozel from "mozel";
+import Mozel, {MozelFactory} from "mozel";
 import {string} from "mozel/dist/Mozel";
 import {interval} from "mozel/dist/utils";
 
@@ -10,7 +10,7 @@ describe("MozelSyncServerHub", () => {
 		it("creates and returns a namespace to which the MozelSyncClient connects automatically", async () => {
 			class Foo extends Mozel {}
 
-			const hub = new MozelSyncServerHub(Foo.createFactory(), Foo);
+			const hub = new MozelSyncServerHub({RootModel: Foo});
 			hub.start();
 
 			const client1Model = Foo.create<Foo>();
@@ -47,7 +47,7 @@ describe("MozelSyncServerHub", () => {
 				@string()
 				declare foo?:string;
 			}
-			const hub = new MozelSyncServerHub(Foo.createFactory(), Foo);
+			const hub = new MozelSyncServerHub({RootModel: Foo});
 			hub.start();
 
 			const model = Foo.create<Foo>({gid: 'root', foo: 'abc'});

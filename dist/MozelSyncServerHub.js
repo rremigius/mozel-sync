@@ -11,12 +11,14 @@ export default class MozelSyncServerHub {
     port;
     Factory;
     RootModel;
+    useClientModel;
     servers = {};
     constructor(options) {
         const $options = options || {};
         this.Factory = $options.Factory || MozelFactory;
         this.RootModel = $options.RootModel || Mozel;
         this.port = isNumber($options.io) ? $options.io : 3000;
+        this.useClientModel = $options.useClientModel === true;
         if ($options.io instanceof Server) {
             this.io = $options.io;
             this.isDefaultIO = false;
@@ -38,7 +40,7 @@ export default class MozelSyncServerHub {
         log.info(`Creating session: ${id}...`);
         const namespace = this.io.of('/' + id);
         const model = this.createSessionModel(id);
-        const server = new MozelSyncServer(model, { io: namespace, useClientState: true });
+        const server = new MozelSyncServer(model, { io: namespace, useClientModel: this.useClientModel });
         this.servers[id] = server;
         server.start();
         namespace.on('disconnected', async () => {

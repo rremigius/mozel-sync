@@ -9,7 +9,7 @@ export default class MozelSyncServer {
     sync;
     port;
     model;
-    userState;
+    useClientModel;
     sessionOwner;
     destroyCallbacks = [];
     clients = {};
@@ -24,7 +24,7 @@ export default class MozelSyncServer {
     constructor(model, options) {
         const $options = options || {};
         this.model = model;
-        this.userState = $options.useClientState === true;
+        this.useClientModel = $options.useClientModel === true;
         this.sync = new MozelSync(model, { priority: 1, autoCommit: 100 });
         this.sync.syncRegistry(model.$registry);
         let io = $options.io;
@@ -102,7 +102,7 @@ export default class MozelSyncServer {
             this.sessionOwner = id;
         log.log(`Sending connection info to ${socket.id}.`);
         socket.emit('connection', { id: socket.id });
-        if (!this.userState || this.sessionOwner !== id) {
+        if (!this.useClientModel || this.sessionOwner !== id) {
             log.log(`Sending full state to ${socket.id}.`);
             socket.emit('full-state', this.sync.createFullState());
         }

@@ -8,7 +8,7 @@ export default class MozelSyncServer {
     readonly sync: MozelSync;
     readonly port: number;
     readonly model: Mozel;
-    readonly userState: boolean;
+    readonly useClientModel: boolean;
     private sessionOwner?;
     readonly destroyCallbacks: Function[];
     private clients;
@@ -23,7 +23,7 @@ export default class MozelSyncServer {
     constructor(model: Mozel, options?: {
         io?: Server | Namespace;
         port?: number;
-        useClientState?: boolean;
+        useClientModel?: boolean;
     });
     start(): void;
     stop(): void;

@@ -13,18 +13,21 @@ export default class MozelSyncServerHub {
 	readonly port:number;
 	readonly Factory:typeof MozelFactory;
 	readonly RootModel:typeof Mozel;
+	readonly useClientModel:boolean;
 	private servers:Record<string, MozelSyncServer> = {};
 
 	constructor(options?:{
 		io?:Server|number,
 		Factory?:typeof MozelFactory,
-		RootModel?:typeof Mozel
+		RootModel?:typeof Mozel,
+		useClientModel?:boolean
 	}) {
 		const $options = options || {};
 
 		this.Factory = $options.Factory || MozelFactory;
 		this.RootModel = $options.RootModel || Mozel;
 		this.port = isNumber($options.io) ? $options.io : 3000;
+		this.useClientModel = $options.useClientModel === true;
 
 		if($options.io instanceof Server) {
 			this.io = $options.io;
@@ -50,7 +53,7 @@ export default class MozelSyncServerHub {
 		const namespace = this.io.of('/' + id);
 
 		const model = this.createSessionModel(id);
-		const server = new MozelSyncServer(model, {io: namespace, useClientState: true});
+		const server = new MozelSyncServer(model, {io: namespace, useClientModel: this.useClientModel});
 		this.servers[id] = server;
 		server.start();
 
