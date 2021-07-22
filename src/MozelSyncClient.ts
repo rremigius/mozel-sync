@@ -55,22 +55,22 @@ export default class MozelSyncClient {
 	}
 
 	setupIO(socket:Socket) {
-		socket.on('connection-hub', (hubInfo) => {
+		socket.on('hub:connected', (hubInfo) => {
 			log.info("Connected to hub.");
 			const config:Record<string, any> = {};
 			if(hubInfo.useClientModel) {
 				config.state = this.sync.createFullState();
 			}
-			socket.emit('create-session', config);
+			socket.emit('hub:session:create', config);
 		});
-		socket.on('session-created', session => {
+		socket.on('hub:session:created', session => {
 			log.info("Session created.");
 			this._session = session.id;
 			this._isSessionOwner = true;
 			this.disconnect(false);
 			this.connect(this.server + '/' + session.id).catch(log.error);
 		});
-		socket.on('connection', event => {
+		socket.on('connected', event => {
 			log.info(`MozelSyncClient connected to server: ${event.serverSyncID}`);
 			this.sync.id = event.id;
 			this._serverSyncID = event.serverSyncID;
@@ -79,7 +79,7 @@ export default class MozelSyncClient {
 			this.onConnected(event.id);
 		});
 		socket.on('error', error => {
-			log.error("Could not connect:", error);
+			log.error("Connection error:", error);
 			this._connectingPromiseCallbacks.reject(error);
 			this._state = State.DISCONNECTED;
 		})

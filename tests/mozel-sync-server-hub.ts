@@ -13,15 +13,17 @@ describe("MozelSyncServerHub", () => {
 			const hub = new MozelSyncServerHub({RootModel: Foo});
 			hub.start();
 
-			const client1Model = Foo.create<Foo>();
+			const init = {gid: 'root'};
+
+			const client1Model = Foo.create<Foo>(init);
 			const client1 = new MozelSyncClient(client1Model,  'http://localhost:3000');
 
 			await client1.start();
 
-			const client2Model = Foo.create<Foo>();
+			const client2Model = Foo.create<Foo>(init);
 			const client2 = new MozelSyncClient(client2Model, 'http://localhost:3000', client1.session);
 
-			const client3Model = Foo.create<Foo>();
+			const client3Model = Foo.create<Foo>(init);
 			const client3 = new MozelSyncClient(client3Model, 'http://localhost:3000');
 			client3.onMessageReceived = () => {
 				throw new Error("Message should not be received by client3");

@@ -66,16 +66,22 @@ export default class MozelSyncServerHub {
 		server.start();
 
 		namespace.on('disconnected', async () => {
-			log.info(`Closing session ${id}...`);
 			const sockets = await namespace.allSockets();
 			if(!sockets.size) {
-				server.destroy();
+				this.destroySession(id, namespace);
 			}
-			namespace.removeAllListeners();
 		});
 
 		this.onSessionCreated(model, {id});
 		return {id};
+	}
+
+	destroySession(id:string, namespace:Namespace) {
+		log.info(`Closing session ${id}...`);
+		namespace.removeAllListeners();
+		delete (this.io._nsps as any)['/' + id];
+		const server = this.servers[id];
+		server.destroy();
 	}
 
 	createSyncServer(model:Mozel, io:Namespace) {
@@ -92,10 +98,10 @@ export default class MozelSyncServerHub {
 		}
 		log.info("MozelSyncServerHub started.");
 		this.io.on('connection', socket => {
-			socket.emit('connection-hub', {useClientModel: this.useClientModel});
-			socket.on('create-session', (config:{state?:Record<alphanumeric, Commit>}) => {
+			socket.emit('hub:connected', {useClientModel: this.useClientModel});
+			socket.on('hub:session:create', (config:{state?:Record<alphanumeric, Commit>}) => {
 				const session = this.createSession(config);
-				socket.emit('session-created', {id: session.id});
+				socket.emit('hub:session:created', {id: session.id});
 			})
 		});
 	}

@@ -3,6 +3,7 @@ import MozelSync from "./MozelSync";
 import Log from "./log";
 import Mozel from "mozel";
 import {Commit, OutdatedUpdateError} from "./MozelWatcher";
+import {alphanumeric} from "validation-kit";
 
 const log = Log.instance("mozel-sync-server");
 
@@ -46,36 +47,16 @@ export default class MozelSyncServer {
 		this.sync.start();
 
 		this.io.on('connection', (socket) => {
-			this.initUser(socket.id, socket)
+			this.handleConnection(socket.id, socket)
 			socket.on('disconnect', () => {
-				log.info(`Client disconnected: ${socket.id}`);
-				this.removeUser(socket.id);
+				this.handleDisconnect(socket);
 			});
-			// Listen to incoming updates
+			// Listen to incoming commits
 			socket.on('push', (commits:Record<string, Commit>) => {
-				log.log(`Received commits from client '${socket.id}':`, Object.keys(commits));
-				try {
-					const merged = this.sync.merge(commits);
-					log.log(`Pushing merged commit from client '${socket.id}' to all clients:`, Object.keys(commits));
-					socket.broadcast.emit('push', merged); // send merged update to others
-				} catch (e) {
-					log.error(e);
-					if(e instanceof OutdatedUpdateError) {
-						log.log(`Sending full state to client '${socket.id}' after error in merge.`);
-						socket.emit('full-state', this.sync.createFullState());
-					}
-				}
+				this.handlePush(socket, commits);
 			});
 			socket.on('full-state', (state:Record<string, Commit>) => {
-				log.log(`Received full state from client '${socket.id}.'`);
-				try {
-					this.sync.setFullState(state);
-					this.onFullStateUpdate(state);
-					log.log(`Sending full state from client '${socket.id} to all clients.'`);
-					socket.broadcast.emit('full-state', state);
-				} catch(e) {
-					log.error(e);
-				}
+				this.handleFullState(socket, state);
 			});
 			socket.on('message', (payload:any) => {
 				log.log(`Passing message from client '${socket.id}' to all clients.'`);
@@ -98,7 +79,7 @@ export default class MozelSyncServer {
 	}
 
 	stop() {
-		if(this.io instanceof Server) this.io.close();
+		if(this.io instanceof Server && this.isDefaultIO) this.io.close();
 		if(this.isDefaultIO) {
 			this.sync.stop();
 		}
@@ -108,14 +89,14 @@ export default class MozelSyncServer {
 		return new MozelSync(model, {priority: 1, autoCommit: 100});
 	}
 
-	initUser(id:string, socket:Socket) {
+	handleConnection(id:string, socket:Socket) {
 		log.info(`Client ${id} connected.`);
 
 		this.clients[id] = {socket};
 		if(Object.keys(this.clients).length === 1) this.sessionOwner = id;
 
 		log.log(`Sending connection info to ${socket.id}.`);
-		socket.emit('connection', {id: socket.id, serverSyncID: this.sync.id});
+		socket.emit('connected', {id: socket.id, serverSyncID: this.sync.id});
 
 		log.log(`Sending full state to ${socket.id}.`);
 		socket.emit('full-state', this.sync.createFullState());
@@ -123,8 +104,36 @@ export default class MozelSyncServer {
 		this.onUserConnected(id);
 	}
 
-	removeUser(id:string) {
-		this.onUserDisconnected(id);
+	handleDisconnect(socket:Socket) {
+		log.info(`Client disconnected: ${socket.id}`);
+		this.onUserDisconnected(socket.id);
+	}
+
+	handlePush(socket:Socket, commits:Record<alphanumeric, Commit>) {
+		log.log(`Received commits from client '${socket.id}':`, Object.keys(commits));
+		try {
+			const merged = this.sync.merge(commits);
+			log.log(`Pushing merged commit from client '${socket.id}' to all clients:`, Object.keys(commits));
+			socket.broadcast.emit('push', merged); // send merged update to others
+		} catch (e) {
+			log.error(e);
+			if(e instanceof OutdatedUpdateError) {
+				log.log(`Sending full state to client '${socket.id}' after error in merge.`);
+				socket.emit('full-state', this.sync.createFullState());
+			}
+		}
+	}
+
+	handleFullState(socket:Socket, state:Record<alphanumeric, Commit>) {
+		log.log(`Received full state from client '${socket.id}.'`);
+		try {
+			this.sync.setFullState(state);
+			this.onFullStateUpdate(state);
+			log.log(`Sending full state from client '${socket.id} to all clients.'`);
+			socket.broadcast.emit('full-state', state);
+		} catch(e) {
+			log.error(e);
+		}
 	}
 
 	onUserConnected(id:string) {
