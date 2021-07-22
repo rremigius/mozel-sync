@@ -1,5 +1,6 @@
 import EventInterface from "event-interface-mixin";
 import Mozel from "mozel";
+import Property, { PropertyValue } from "mozel/dist/Property";
 export declare type Changes = Record<string, any>;
 export declare class OutdatedUpdateError extends Error {
     baseVersion: number;
@@ -22,9 +23,11 @@ export declare class MozelWatcherEvents extends EventInterface {
 }
 export declare class MozelWatcher {
     readonly model: Mozel;
-    private watchers;
+    active: boolean;
+    private _started;
     private _changes;
     get changes(): Changes;
+    private watchers;
     private newModels;
     private modelsInUpdates;
     private stopCallbacks;
@@ -74,6 +77,18 @@ export declare class MozelWatcher {
     commit(): Commit | undefined;
     isEqualChangeValue(value1: unknown, value2: unknown): boolean;
     start(includeCurrentState?: boolean): void;
+    onPropertyChange(change: {
+        newValue: PropertyValue;
+        oldValue: PropertyValue;
+        valuePath: string;
+        changePath: string;
+    }): void;
+    onCollectionChange(property: Property, change: {
+        newValue: PropertyValue;
+        oldValue: PropertyValue;
+        valuePath: string;
+        changePath: string;
+    }): void;
     stop(): void;
     destroy(): void;
 }

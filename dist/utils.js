@@ -23,7 +23,7 @@ export function findAllDeep(object, predicate) {
     let found = [];
     for (let key in object) {
         const value = object[key];
-        if (predicate(key, value)) {
+        if (predicate(value, key)) {
             found.push({ [key]: value });
         }
         if (isPlainObject(value) || Array.isArray(value)) {

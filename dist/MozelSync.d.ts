@@ -19,7 +19,6 @@ export default class MozelSync {
     private _commitThrottled;
     get commitThrottled(): () => void;
     private mozels;
-    private newMozels;
     private watchers;
     private unRegisterCallbacks;
     private destroyCallbacks;

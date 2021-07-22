@@ -32,7 +32,6 @@ export default class MozelSync {
     }
     ;
     mozels = {};
-    newMozels = new Set();
     watchers = {};
     unRegisterCallbacks = {};
     destroyCallbacks = [];
@@ -93,9 +92,8 @@ export default class MozelSync {
                 return;
             updates[watcher.model.gid] = update;
         });
-        this.newMozels.clear();
         this.events.newCommits.fire(new MozelSyncNewCommitsEvent(updates));
-        log.log("Committing changes to:", Object.keys(updates));
+        log.log("Committing changes:", Object.keys(updates));
         return updates;
     }
     /**
@@ -153,10 +151,18 @@ export default class MozelSync {
      */
     setFullState(commits, force = false) {
         log.log("Setting full state:", Object.keys(commits));
+        // We have to disable them at this level because one watcher may set data watched by another watcher
+        forEach(this.watchers, watcher => watcher.active = false);
+        this.active = false; // also set `active` to prevent new watchers from starting right away
         this.commitsOrderedForWatchers(commits, (watcher, commit) => {
             if (!force && !this.shouldSync(watcher.model, commit.syncID))
                 return;
             watcher.setFullState(commit);
+        });
+        this.active = true;
+        forEach(this.watchers, watcher => {
+            watcher.active = true;
+            watcher.start(); // for any (new) watchers that had not started yet
         });
     }
     getWatcher(gid) {
@@ -171,12 +177,10 @@ export default class MozelSync {
             historyLength: this.historyLength
         });
         this.mozels[mozel.gid] = mozel;
-        if (!mozel.$root)
-            this.newMozels.add(mozel.gid);
         this.watchers[mozel.gid] = watcher;
         this.unRegisterCallbacks[mozel.gid] = [
             mozel.$events.destroyed.on(() => this.unregister(mozel)),
-            watcher.events.changed.on(() => {
+            watcher.events.changed.on((event) => {
                 if (isNumber(this.autoCommit))
                     this.commitThrottled();
             })
@@ -190,7 +194,6 @@ export default class MozelSync {
         this.watchers[mozel.gid].destroy();
         delete this.watchers[mozel.gid];
         delete this.mozels[mozel.gid];
-        this.newMozels.delete(mozel.gid);
         this.unRegisterCallbacks[mozel.gid].forEach(call);
     }
     has(mozel) {
