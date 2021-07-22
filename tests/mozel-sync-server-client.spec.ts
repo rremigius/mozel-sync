@@ -108,13 +108,15 @@ describe("MozelSyncServer/Client", () => {
 			const server = new MozelSyncServer(serverModel);
 			const client1 = new MozelSyncClient(client1Model, 'http://localhost:3000');
 			const client2 = new MozelSyncClient(client2Model, 'http://localhost:3000');
+			(client1 as any).ID = 1;
+			(client2 as any).ID = 2;
 
 			server.start();
 			await client1.start();
 			await client2.start();
 
-			assert.exists(client1Model.foo, "RootFoo synced to client1");
-			assert.exists(client2Model.foos.get(1)!.foo, "RootFoos2Foo synced to client 2");
+			assert.deepEqual(client1Model.$export(), serverModel.$export(), "Server and client1 in sync after start");
+			assert.deepEqual(client2Model.$export(), serverModel.$export(), "Server and client2 in sync after start");
 
 			client1Model.foo!.name = 'RootFoo-client1';
 			client2Model.foo!.name = 'RootFoo-client2';

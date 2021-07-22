@@ -156,4 +156,22 @@ describe("MozelWatcher", () => {
 			}, "Merge result only includes applied change");
 		});
 	})
+	describe("setFullState", () => {
+		it("does not generate changes", () => {
+			class Foo extends Mozel {
+				@string()
+				foo?:string;
+			}
+			const model1 = Foo.create<Foo>();
+			const model2 = Foo.create<Foo>();
+
+			const watcher1 = new MozelWatcher(model1);
+			const watcher2 = new MozelWatcher(model2);
+
+			model1.foo = 'abc';
+			watcher2.setFullState(watcher1.createFullState());
+
+			assert.notOk(watcher2.hasChanges(), "Watcher has no changes after setting full state.");
+		});
+	});
 });

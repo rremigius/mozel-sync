@@ -6,6 +6,7 @@ import {call, findAllDeep, forEach, get, isArray, isPlainObject} from "./utils";
 import PropertyWatcher from "mozel/dist/PropertyWatcher";
 import Mozel, {Collection} from "mozel";
 import {shallow} from "mozel/dist/Mozel";
+import Property, {PropertyValue} from "mozel/dist/Property";
 
 const log = Log.instance("mozel-watcher");
 
@@ -32,11 +33,15 @@ export class MozelWatcherEvents extends EventInterface {
 export class MozelWatcher {
 	readonly model:Mozel;
 
-	private watchers:PropertyWatcher[] = [];
+	public active = true;
+	private _started = false;
+
 	private _changes:Changes = {};
 	get changes() {
 		return this._changes;
 	}
+
+	private watchers:PropertyWatcher[] = [];
 	private newModels:Set<alphanumeric> = new Set<alphanumeric>();
 	private modelsInUpdates:Set<alphanumeric> = new Set<alphanumeric>();
 	private stopCallbacks:Function[] = [];
@@ -96,6 +101,8 @@ export class MozelWatcher {
 			throw new OutdatedUpdateError(commit.baseVersion, this.historyMinBaseVersion);
 		}
 		const changes = this.overrideChangesFromHistory(commit);
+		const gids = findAllDeep(changes, (value, key) => key === 'gid');
+		forEach(gids, entry => this.modelsInUpdates.add(entry.gid));
 
 		// Update version
 		const version = Math.max(commit.version, this.version);
@@ -113,7 +120,9 @@ export class MozelWatcher {
 	}
 
 	setFullState(commit:Commit) {
+		this.active = false;
 		this.model.$setData(commit.changes);
+		this.active = true;
 		this.version = commit.version;
 	}
 
@@ -244,33 +253,23 @@ export class MozelWatcher {
 	}
 
 	start(includeCurrentState = false) {
+		if(this._started) return; // already started
+		this._started = true;
+		this.active = true;
+
 		// Watch property changes
 		this.watchers.push(this.model.$watch('*', change => {
-			const lastUpdate = this.lastUpdate;
-			if(lastUpdate && this.isEqualChangeValue(change.newValue, lastUpdate.changes[change.changePath])) {
-				// If the change is a direct result of the last update, we don't need to include it in our changes.
-				// We don't need to tell whoever sent the update to also apply the same changes of their own update.
-				delete this._changes[change.changePath]; // also remove any change if already recorded
-				return;
-			}
-			this._changes[change.changePath] = this.model.$path(change.changePath);
-			this.events.changed.fire(new MozelWatcherChangedEvent(change.changePath));
+			if(!this.active) return;
+			this.onPropertyChange(change);
 		}));
 
 		// Watch collection changes
 		this.model.$eachProperty(property => {
 			if(!property.isCollectionType()) return;
 			this.watchers.push(this.model.$watch(`${property.name}.*`, change => {
-				const lastUpdate = this.lastUpdate;
-				if(lastUpdate && this.isEqualChangeValue(this.model.$get(property.name), lastUpdate.changes[property.name])) {
-					// If the change is a direct result of the last update, we don't need to include it in our changes.
-					// We don't need to tell whoever sent the update to also apply the same changes of their own update.
-					delete this._changes[property.name]; // also remove any change if already recorded
-					return;
-				}
-				this._changes[property.name] = this.model.$get(property.name);
-				this.events.changed.fire(new MozelWatcherChangedEvent(change.changePath));
-			}, {debounce: 0}));
+				if(!this.active) return;
+				this.onCollectionChange(property, change);
+			}));
 		});
 
 		// Keep track of newly created Mozels
@@ -291,6 +290,30 @@ export class MozelWatcher {
 			this._changes = this.model.$export({shallow: true, nonDefault: true});
 			this.events.changed.fire(new MozelWatcherChangedEvent("*"));
 		}
+	}
+
+	onPropertyChange(change:{newValue:PropertyValue; oldValue: PropertyValue; valuePath: string; changePath: string;}) {
+		const lastUpdate = this.lastUpdate;
+		if(lastUpdate && this.isEqualChangeValue(change.newValue, lastUpdate.changes[change.changePath])) {
+			// If the change is a direct result of the last update, we don't need to include it in our changes.
+			// We don't need to tell whoever sent the update to also apply the same changes of their own update.
+			delete this._changes[change.changePath]; // also remove any change if already recorded
+			return;
+		}
+		this._changes[change.changePath] = this.model.$path(change.changePath);
+		this.events.changed.fire(new MozelWatcherChangedEvent(change.changePath));
+	}
+
+	onCollectionChange(property:Property, change:{newValue:PropertyValue; oldValue: PropertyValue; valuePath: string; changePath: string;}) {
+		const lastUpdate = this.lastUpdate;
+		if(lastUpdate && this.isEqualChangeValue(this.model.$get(property.name), lastUpdate.changes[property.name])) {
+			// If the change is a direct result of the last update, we don't need to include it in our changes.
+			// We don't need to tell whoever sent the update to also apply the same changes of their own update.
+			delete this._changes[property.name]; // also remove any change if already recorded
+			return;
+		}
+		this._changes[property.name] = this.model.$get(property.name);
+		this.events.changed.fire(new MozelWatcherChangedEvent(change.changePath));
 	}
 
 	stop() {

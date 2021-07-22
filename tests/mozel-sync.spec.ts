@@ -5,7 +5,7 @@ import {string} from "mozel/dist/Mozel";
 import {interval} from "mozel/dist/utils";
 
 describe("MozelSync", () => {
-	describe("getUpdates", () => {
+	describe("commit", () => {
 		it("returns all changes to all registered Mozels", () => {
 			class Foo extends Mozel {
 				@property(String)
@@ -29,13 +29,13 @@ describe("MozelSync", () => {
 			root.foo!.name = 'root.foo2';
 			root.foo!.foo = root.$create(Foo, {name: 'root.foo.foo'});
 
-			const updates = sync.commit();
-			assert.deepEqual(Object.keys(updates), ['root', 'rootFoo'], "Correct entries in update.");
+			const commits = sync.commit();
+			assert.deepEqual(Object.keys(commits), ['root', 'rootFoo'], "Correct entries in update.");
 
-			assert.deepEqual(updates.root.changes, {
+			assert.deepEqual(commits.root.changes, {
 				name: 'root2'
 			});
-			assert.deepEqual(updates.rootFoo.changes, {
+			assert.deepEqual(commits.rootFoo.changes, {
 				name: 'root.foo2',
 				foo: {gid: root.foo!.foo.gid, name: 'root.foo.foo', foo: undefined}
 			});
