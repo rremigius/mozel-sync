@@ -27,6 +27,7 @@ export default class MozelSyncServer {
     });
     start(): void;
     stop(): void;
+    createSync(model: Mozel): MozelSync;
     initUser(id: string, socket: Socket): void;
     removeUser(id: string): void;
     onUserConnected(id: string): void;

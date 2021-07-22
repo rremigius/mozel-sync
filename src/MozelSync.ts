@@ -3,9 +3,8 @@ import EventInterface from "event-interface-mixin";
 import {v4 as uuid} from "uuid";
 import Log from "./log";
 import {Commit, MozelWatcher} from "./MozelWatcher";
-import {call, find, forEach, isNumber, map, mapValues, throttle, values} from "./utils";
-import Mozel, {MozelFactory, Registry} from "mozel";
-import {MozelData} from "mozel/dist/Mozel";
+import {call, find, forEach, isNumber, throttle, values} from "./utils";
+import Mozel, {Registry} from "mozel";
 
 const log = Log.instance("mozel-sync");
 
@@ -156,22 +155,28 @@ export default class MozelSync {
 	/**
 	 * Merges the given commits for each MozelWatcher
 	 * @param commits
+	 * @param force		If `true`, will sync all commits without calling `shouldSync`.
 	 */
-	merge(commits:Record<alphanumeric, Commit>) {
+	merge(commits:Record<alphanumeric, Commit>, force = false) {
 		log.log("Merging commits:", Object.keys(commits));
 		const merges:Record<alphanumeric, Commit> = {}
 		this.commitsOrderedForWatchers(commits, (watcher, commit) => {
-			if(!this.shouldSync(watcher.model, commit.syncID)) return;
+			if(!force && !this.shouldSync(watcher.model, commit.syncID)) return;
 
 			merges[watcher.model.gid] = {...watcher.merge(commit), priority: this.priority};
 		});
 		return merges;
 	}
 
-	setFullState(commits:Record<alphanumeric, Commit>) {
+	/**
+	 * Set the full state of the given commits (does not merge).
+	 * @param commits
+	 * @param force		If `true`, will set state regardless of `shouldSync`.
+	 */
+	setFullState(commits:Record<alphanumeric, Commit>, force = false) {
 		log.log("Setting full state:", Object.keys(commits));
 		this.commitsOrderedForWatchers(commits, (watcher, commit) => {
-			if(!this.shouldSync(watcher.model, commit.syncID)) return;
+			if(!force && !this.shouldSync(watcher.model, commit.syncID)) return;
 
 			watcher.setFullState(commit);
 		});

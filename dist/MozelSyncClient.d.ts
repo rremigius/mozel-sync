@@ -14,6 +14,7 @@ export default class MozelSyncClient {
     get session(): string | undefined;
     constructor(model: Mozel, server: string, session?: string);
     initIO(): void;
+    createSync(model: Mozel): MozelSync;
     start(): Promise<void>;
     message(payload: any): void;
     onMessageReceived(payload: unknown): void;

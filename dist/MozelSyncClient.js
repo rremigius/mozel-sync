@@ -18,7 +18,7 @@ export default class MozelSyncClient {
     constructor(model, server, session) {
         this.model = model;
         this._session = session;
-        this.sync = new MozelSync(model, { autoCommit: 100 });
+        this.sync = this.createSync(model);
         this.sync.syncRegistry(model.$registry);
         this.server = server;
         const url = session ? `${server}/${session}` : server;
@@ -75,6 +75,9 @@ export default class MozelSyncClient {
             log.info(`Pushing new commits:`, Object.keys(event.commits));
             this.io.emit('push', event.commits);
         }));
+    }
+    createSync(model) {
+        return new MozelSync(model, { autoCommit: 100 });
     }
     async start() {
         this.sync.start();

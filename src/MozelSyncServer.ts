@@ -31,7 +31,7 @@ export default class MozelSyncServer {
 
 		this.model = model;
 		this.useClientModel = $options.useClientModel === true;
-		this.sync = new MozelSync(model, {priority: 1, autoCommit: 100});
+		this.sync = this.createSync(model);
 		this.sync.syncRegistry(model.$registry);
 
 		let io = $options.io;
@@ -105,6 +105,10 @@ export default class MozelSyncServer {
 		if(this.isDefaultIO) {
 			this.sync.stop();
 		}
+	}
+
+	createSync(model:Mozel) {
+		return new MozelSync(model, {priority: 1, autoCommit: 100});
 	}
 
 	initUser(id:string, socket:Socket) {

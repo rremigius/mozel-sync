@@ -2,7 +2,7 @@ import EventInterface from "event-interface-mixin";
 import { v4 as uuid } from "uuid";
 import Log from "./log";
 import { MozelWatcher } from "./MozelWatcher";
-import { call, find, forEach, isNumber, mapValues, throttle, values } from "./utils";
+import { call, find, forEach, isNumber, throttle, values } from "./utils";
 const log = Log.instance("mozel-sync");
 export class MozelSyncNewCommitsEvent {
     commits;
@@ -54,19 +54,44 @@ export default class MozelSync {
             this.syncRegistry(model.$registry);
         }
     }
+    /**
+     * Determines whether or not a Mozel should be registered and watched by this MozelSync.
+     * Can be overridden for application-specific control. Defaults to always-true.
+     * @param mozel
+     */
+    shouldRegister(mozel) {
+        return true;
+    }
+    /**
+     * Determines whether or not a Mozel should be synced (both up and down) by this MozelSync.
+     * Can be overridden for application-specific control. Defaults to always-true.
+     * @param mozel
+     * @param syncID
+     */
+    shouldSync(mozel, syncID) {
+        return true;
+    }
     createFullState() {
-        return mapValues(this.watchers, watcher => watcher.createFullState());
+        const state = {};
+        forEach(this.watchers, (watcher, gid) => {
+            if (!this.shouldSync(watcher.model, this.id))
+                return;
+            state[gid] = watcher.createFullState();
+        });
+        return state;
     }
     hasChanges() {
-        return !!find(this.watchers, watcher => watcher.hasChanges());
+        return !!find(this.watchers, watcher => this.shouldSync(watcher.model, this.id) && watcher.hasChanges());
     }
     commit() {
         const updates = {};
         forEach(this.watchers, watcher => {
+            if (!this.shouldSync(watcher.model, this.id))
+                return;
             const update = watcher.commit();
             if (!update)
                 return;
-            updates[watcher.mozel.gid] = update;
+            updates[watcher.model.gid] = update;
         });
         this.newMozels.clear();
         this.events.newCommits.fire(new MozelSyncNewCommitsEvent(updates));
@@ -109,18 +134,28 @@ export default class MozelSync {
     /**
      * Merges the given commits for each MozelWatcher
      * @param commits
+     * @param force		If `true`, will sync all commits without calling `shouldSync`.
      */
-    merge(commits) {
+    merge(commits, force = false) {
         log.log("Merging commits:", Object.keys(commits));
         const merges = {};
         this.commitsOrderedForWatchers(commits, (watcher, commit) => {
-            merges[watcher.mozel.gid] = { ...watcher.merge(commit), priority: this.priority };
+            if (!force && !this.shouldSync(watcher.model, commit.syncID))
+                return;
+            merges[watcher.model.gid] = { ...watcher.merge(commit), priority: this.priority };
         });
         return merges;
     }
-    setFullState(commits) {
+    /**
+     * Set the full state of the given commits (does not merge).
+     * @param commits
+     * @param force		If `true`, will set state regardless of `shouldSync`.
+     */
+    setFullState(commits, force = false) {
         log.log("Setting full state:", Object.keys(commits));
         this.commitsOrderedForWatchers(commits, (watcher, commit) => {
+            if (!force && !this.shouldSync(watcher.model, commit.syncID))
+                return;
             watcher.setFullState(commit);
         });
     }
@@ -167,7 +202,11 @@ export default class MozelSync {
         this.registry = registry;
         this.destroyCallbacks = [
             ...this.destroyCallbacks,
-            registry.events.added.on(event => this.register(event.item)),
+            registry.events.added.on(event => {
+                const model = event.item;
+                if (this.shouldRegister(model))
+                    this.register(model);
+            }),
             registry.events.removed.on(event => this.unregister(event.item))
         ];
         // Also register current Mozels
@@ -184,9 +223,9 @@ export default class MozelSync {
     destroy(destroyMozels = false) {
         this.destroyCallbacks.forEach(call);
         values(this.watchers).forEach(watcher => {
-            this.unregister(watcher.mozel);
+            this.unregister(watcher.model);
             if (destroyMozels)
-                watcher.mozel.$destroy();
+                watcher.model.$destroy();
         });
     }
 }

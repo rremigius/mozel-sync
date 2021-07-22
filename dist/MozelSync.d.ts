@@ -35,10 +35,20 @@ export default class MozelSync {
         historyLength?: number;
         autoCommit?: number;
     });
-    createFullState(): {
-        [x: string]: Commit;
-        [x: number]: Commit;
-    };
+    /**
+     * Determines whether or not a Mozel should be registered and watched by this MozelSync.
+     * Can be overridden for application-specific control. Defaults to always-true.
+     * @param mozel
+     */
+    shouldRegister(mozel: Mozel): boolean;
+    /**
+     * Determines whether or not a Mozel should be synced (both up and down) by this MozelSync.
+     * Can be overridden for application-specific control. Defaults to always-true.
+     * @param mozel
+     * @param syncID
+     */
+    shouldSync(mozel: Mozel, syncID: string): boolean;
+    createFullState(): Record<alphanumeric, Commit>;
     hasChanges(): boolean;
     commit(): Record<alphanumeric, Commit>;
     /**
@@ -51,9 +61,15 @@ export default class MozelSync {
     /**
      * Merges the given commits for each MozelWatcher
      * @param commits
+     * @param force		If `true`, will sync all commits without calling `shouldSync`.
      */
-    merge(commits: Record<alphanumeric, Commit>): Record<alphanumeric, Commit>;
-    setFullState(commits: Record<alphanumeric, Commit>): void;
+    merge(commits: Record<alphanumeric, Commit>, force?: boolean): Record<alphanumeric, Commit>;
+    /**
+     * Set the full state of the given commits (does not merge).
+     * @param commits
+     * @param force		If `true`, will set state regardless of `shouldSync`.
+     */
+    setFullState(commits: Record<alphanumeric, Commit>, force?: boolean): void;
     getWatcher(gid: alphanumeric): MozelWatcher;
     register(mozel: Mozel): void;
     unregister(mozel: Mozel): void;

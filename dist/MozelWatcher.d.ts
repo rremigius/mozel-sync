@@ -21,12 +21,12 @@ export declare class MozelWatcherEvents extends EventInterface {
     changed: import("event-interface-mixin").EventEmitter<MozelWatcherChangedEvent>;
 }
 export declare class MozelWatcher {
-    readonly mozel: Mozel;
+    readonly model: Mozel;
     private watchers;
     private _changes;
     get changes(): Changes;
-    private newMozels;
-    private mozelsInUpdates;
+    private newModels;
+    private modelsInUpdates;
     private stopCallbacks;
     private priority;
     private version;
