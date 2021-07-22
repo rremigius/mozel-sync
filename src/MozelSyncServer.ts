@@ -4,9 +4,16 @@ import Log from "./log";
 import Mozel from "mozel";
 import {Commit, OutdatedUpdateError} from "./MozelWatcher";
 import {alphanumeric} from "validation-kit";
+import EventInterface from "event-interface-mixin";
 
 const log = Log.instance("mozel-sync-server");
 
+export class ServerDestroyedEvent {}
+export class ServerEmptyEvent {}
+export class MozelSyncServerEvents extends EventInterface {
+	destroyed = this.$event(ServerDestroyedEvent);
+	empty = this.$event(ServerEmptyEvent);
+}
 export default class MozelSyncServer {
 	readonly io:Server|Namespace;
 	readonly isDefaultIO:boolean;
@@ -17,6 +24,8 @@ export default class MozelSyncServer {
 
 	readonly destroyCallbacks:Function[] = [];
 	private clients:Record<string, { socket:Socket }> = {};
+
+	public readonly events = new MozelSyncServerEvents();
 
 	/**
 	 *
@@ -106,7 +115,12 @@ export default class MozelSyncServer {
 
 	handleDisconnect(socket:Socket) {
 		log.info(`Client disconnected: ${socket.id}`);
+		delete this.clients[socket.id];
 		this.onUserDisconnected(socket.id);
+
+		this.io.allSockets().then(sockets => {
+			if(!sockets.size) this.events.empty.fire(new ServerEmptyEvent());
+		}).catch(log.error);
 	}
 
 	handlePush(socket:Socket, commits:Record<alphanumeric, Commit>) {
@@ -152,5 +166,6 @@ export default class MozelSyncServer {
 		this.destroyCallbacks.forEach(callback => callback());
 		this.stop();
 		this.sync.destroy(true);
+		this.events.destroyed.fire(new ServerDestroyedEvent());
 	}
 }

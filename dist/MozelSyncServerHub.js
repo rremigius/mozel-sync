@@ -46,12 +46,7 @@ export default class MozelSyncServerHub {
         }
         this.servers[id] = server;
         server.start();
-        namespace.on('disconnected', async () => {
-            const sockets = await namespace.allSockets();
-            if (!sockets.size) {
-                this.destroySession(id, namespace);
-            }
-        });
+        server.events.empty.on(() => this.destroySession(id, namespace));
         this.onSessionCreated(model, { id });
         return { id };
     }

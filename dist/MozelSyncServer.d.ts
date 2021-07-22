@@ -3,6 +3,15 @@ import MozelSync from "./MozelSync";
 import Mozel from "mozel";
 import { Commit } from "./MozelWatcher";
 import { alphanumeric } from "validation-kit";
+import EventInterface from "event-interface-mixin";
+export declare class ServerDestroyedEvent {
+}
+export declare class ServerEmptyEvent {
+}
+export declare class MozelSyncServerEvents extends EventInterface {
+    destroyed: import("event-interface-mixin").EventEmitter<ServerDestroyedEvent>;
+    empty: import("event-interface-mixin").EventEmitter<ServerEmptyEvent>;
+}
 export default class MozelSyncServer {
     readonly io: Server | Namespace;
     readonly isDefaultIO: boolean;
@@ -12,6 +21,7 @@ export default class MozelSyncServer {
     private sessionOwner?;
     readonly destroyCallbacks: Function[];
     private clients;
+    readonly events: MozelSyncServerEvents;
     /**
      *
      * @param model

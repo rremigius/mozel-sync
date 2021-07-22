@@ -2,7 +2,16 @@ import { Namespace, Server } from "socket.io";
 import MozelSync from "./MozelSync";
 import Log from "./log";
 import { OutdatedUpdateError } from "./MozelWatcher";
+import EventInterface from "event-interface-mixin";
 const log = Log.instance("mozel-sync-server");
+export class ServerDestroyedEvent {
+}
+export class ServerEmptyEvent {
+}
+export class MozelSyncServerEvents extends EventInterface {
+    destroyed = this.$event(ServerDestroyedEvent);
+    empty = this.$event(ServerEmptyEvent);
+}
 export default class MozelSyncServer {
     io;
     isDefaultIO;
@@ -12,6 +21,7 @@ export default class MozelSyncServer {
     sessionOwner;
     destroyCallbacks = [];
     clients = {};
+    events = new MozelSyncServerEvents();
     /**
      *
      * @param model
@@ -86,7 +96,12 @@ export default class MozelSyncServer {
     }
     handleDisconnect(socket) {
         log.info(`Client disconnected: ${socket.id}`);
+        delete this.clients[socket.id];
         this.onUserDisconnected(socket.id);
+        this.io.allSockets().then(sockets => {
+            if (!sockets.size)
+                this.events.empty.fire(new ServerEmptyEvent());
+        }).catch(log.error);
     }
     handlePush(socket, commits) {
         log.log(`Received commits from client '${socket.id}':`, Object.keys(commits));
@@ -128,6 +143,7 @@ export default class MozelSyncServer {
         this.destroyCallbacks.forEach(callback => callback());
         this.stop();
         this.sync.destroy(true);
+        this.events.destroyed.fire(new ServerDestroyedEvent());
     }
 }
 //# sourceMappingURL=MozelSyncServer.js.map
