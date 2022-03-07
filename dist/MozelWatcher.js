@@ -2,7 +2,7 @@ import { v4 as uuid } from "uuid";
 import EventInterface from "event-interface-mixin";
 import Log from "log-control";
 import { isPrimitive } from "validation-kit";
-import { call, findAllDeep, forEach, get, isArray, isPlainObject } from "./utils";
+import { call, findAllValuesDeep, forEach, get, isArray, isPlainObject } from "./utils";
 import Mozel, { Collection } from "mozel";
 import { shallow } from "mozel/dist/Mozel";
 const log = Log.instance("mozel-watcher");
@@ -86,8 +86,8 @@ export class MozelWatcher {
             throw new OutdatedUpdateError(commit.baseVersion, this.historyMinBaseVersion);
         }
         const changes = this.overrideChangesFromHistory(commit);
-        const gids = findAllDeep(changes, (value, key) => key === 'gid');
-        forEach(gids, entry => this.modelsInUpdates.add(entry.gid));
+        const gids = findAllValuesDeep(changes, (value, key) => key === 'gid');
+        gids.forEach(value => this.modelsInUpdates.add(value));
         // Update version
         const version = Math.max(commit.version, this.version);
         this.version = version;

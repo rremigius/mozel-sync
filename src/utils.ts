@@ -47,16 +47,18 @@ export function findDeep(object:Record<string, any>, predicate:(value:unknown, k
 		}
 	}
 }
-export function findAllDeep(object:Record<string, any>, predicate:(value:unknown, key:string) => boolean) {
-	let found:Record<string, any>[] = [];
+export function findAllValuesDeep(object:Record<string, any>, predicate:(value:unknown, key:string) => boolean, out?:Set<any>) {
+	if(out === undefined) {
+		out = new Set<any>();
+	}
 	for(let key in object) {
 		const value = object[key];
 		if(predicate(value, key)) {
-			found.push({[key]: value});
+			out.add(value);
 		}
 		if(isPlainObject(value) || Array.isArray(value)) {
-			found = found.concat(found, findAllDeep(value, predicate));
+			findAllValuesDeep(value, predicate, out);
 		}
 	}
-	return uniqWith(found, isEqual);
+	return out;
 }

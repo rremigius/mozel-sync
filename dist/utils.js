@@ -1,4 +1,4 @@
-import { isPlainObject, uniqWith, isEqual } from "lodash";
+import { isPlainObject } from "lodash";
 export { get, set, isPlainObject, isArray, isString, isBoolean, isNil, isFunction, isEmpty, uniqueId, debounce, has, includes, forEach, remove, mapValues, values, omit, isNumber, throttle, isEqual, find, map } from "lodash";
 export function interval(ms) {
     return new Promise(resolve => {
@@ -19,17 +19,19 @@ export function findDeep(object, predicate) {
         }
     }
 }
-export function findAllDeep(object, predicate) {
-    let found = [];
+export function findAllValuesDeep(object, predicate, out) {
+    if (out === undefined) {
+        out = new Set();
+    }
     for (let key in object) {
         const value = object[key];
         if (predicate(value, key)) {
-            found.push({ [key]: value });
+            out.add(value);
         }
         if (isPlainObject(value) || Array.isArray(value)) {
-            found = found.concat(found, findAllDeep(value, predicate));
+            findAllValuesDeep(value, predicate, out);
         }
     }
-    return uniqWith(found, isEqual);
+    return out;
 }
 //# sourceMappingURL=utils.js.map
