@@ -4,6 +4,7 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
+    "build": "tsc --build",
     "update-mozel": "npm remove mozel && npm i https://github.com/rremigius/mozel.git",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

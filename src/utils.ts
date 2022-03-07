@@ -1,4 +1,4 @@
-import {isPlainObject, concat} from "lodash";
+import {isPlainObject, uniqWith, isEqual} from "lodash";
 
 export {
 	get,
@@ -58,5 +58,5 @@ export function findAllDeep(object:Record<string, any>, predicate:(value:unknown
 			found = found.concat(found, findAllDeep(value, predicate));
 		}
 	}
-	return found;
+	return uniqWith(found, isEqual);
 }
