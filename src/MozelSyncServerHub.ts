@@ -72,6 +72,7 @@ export default class MozelSyncServerHub {
 		server.start();
 
 		server.events.empty.on(()=>{
+			log.info(`Server ${id} empty; closing in ${this.sessionEmptyDestroyTimeout} ms...`);
 			// Start timeout to destroy session
 			const timeout = setTimeout(()=>{
 				this.destroySession(id, namespace)
@@ -79,6 +80,7 @@ export default class MozelSyncServerHub {
 
 			// Cancel destruction if someone joins before that time
 			const handler = server.events.userConnected.on(()=>{
+				log.info(`Server ${id} no longer empty; cancelled closure.`);
 				clearTimeout(timeout);
 				server.events.userConnected.off(handler);
 			});
