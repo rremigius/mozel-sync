@@ -94,6 +94,14 @@ export default class MozelSyncServer {
 		}
 	}
 
+	logCommits(commits:Record<string, Commit>) {
+		if(Object.keys(commits).length < 5) {
+			return commits;
+		} else {
+			return Object.keys(commits);
+		}
+	}
+
 	createSync(model:Mozel) {
 		return new MozelSync(model, {priority: 1, autoCommit: 100});
 	}
@@ -128,7 +136,7 @@ export default class MozelSyncServer {
 		try {
 			const merged = this.sync.merge(commits);
 			this.onPush(commits, socket);
-			log.log(`Pushing merged commit from client '${socket.id}' to all clients:`, Object.keys(commits));
+			log.log(`Pushing merged commit from client '${socket.id}' to all clients:`, this.logCommits(merged));
 			this.io.emit('push', merged); // send merged update to all clients, including sender.
 			/*
 				We send back to sender as well because they might have received a full state, just after they sent this
@@ -144,7 +152,7 @@ export default class MozelSyncServer {
 	}
 
 	handleFullState(socket:Socket, state:Record<alphanumeric, Commit>) {
-		log.log(`Received full state from client '${socket.id}.'`, state);
+		log.log(`Received full state from client '${socket.id}.'`, this.logCommits(state));
 		try {
 			this.sync.setFullState(state);
 			this.onFullStateUpdate(state, socket);

@@ -111,7 +111,7 @@ export default class MozelSync {
 			updates[watcher.model.gid] = update;
 		});
 		this.events.newCommits.fire(new MozelSyncNewCommitsEvent(updates));
-		log.log(this.id, "Committing changes:", Object.keys(updates), updates);
+		log.log(this.id, "Committing changes:", Object.keys(updates));
 		return updates;
 	}
 

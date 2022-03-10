@@ -85,7 +85,7 @@ export default class MozelSyncClient {
             }
             if (!Object.keys(commits).length)
                 return;
-            log.info(`Received new commits:`, Object.keys(commits), commits);
+            log.info(`Received new commits:`, Object.keys(commits));
             this.sync.merge(commits);
             // log.log(`Changes merged. New model:`, this.sync.model);
         });

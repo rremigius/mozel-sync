@@ -35,6 +35,7 @@ export default class MozelSyncServer {
     });
     start(): void;
     stop(): void;
+    logCommits(commits: Record<string, Commit>): string[] | Record<string, Commit>;
     createSync(model: Mozel): MozelSync;
     handleConnection(id: string, socket: Socket): void;
     handleDisconnect(socket: Socket): void;
