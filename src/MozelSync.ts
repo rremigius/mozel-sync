@@ -111,7 +111,7 @@ export default class MozelSync {
 			updates[watcher.model.gid] = update;
 		});
 		this.events.newCommits.fire(new MozelSyncNewCommitsEvent(updates));
-		log.log("Committing changes:", Object.keys(updates));
+		log.log(this.id, "Committing changes:", Object.keys(updates), updates);
 		return updates;
 	}
 
@@ -156,7 +156,7 @@ export default class MozelSync {
 	 * @param force		If `true`, will sync all commits without calling `shouldSync`.
 	 */
 	merge(commits:Record<alphanumeric, Commit>, force = false) {
-		log.log("Merging commits:", Object.keys(commits));
+		log.log(this.id, "Merging commits:", Object.keys(commits));
 		const merges:Record<alphanumeric, Commit> = {}
 		this.commitsOrderedForWatchers(commits, (watcher, commit) => {
 			if(!force && !this.shouldSync(watcher.model, commit.syncID)) return;
@@ -172,7 +172,7 @@ export default class MozelSync {
 	 * @param force		If `true`, will set state regardless of `shouldSync`.
 	 */
 	setFullState(commits:Record<alphanumeric, Commit>, force = false) {
-		log.log("Setting full state:", Object.keys(commits));
+		log.log(this.id, "Setting full state:", Object.keys(commits));
 
 		// We have to disable them at this level because one watcher may set data watched by another watcher
 		forEach(this.watchers, watcher => watcher.active = false);

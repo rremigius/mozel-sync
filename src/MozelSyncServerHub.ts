@@ -59,6 +59,7 @@ export default class MozelSyncServerHub {
 		const server = this.createSyncServer(model, namespace);
 
 		if(this.useClientModel && config && config.state) {
+			log.info(`Using client state:`, config.state);
 			server.sync.setFullState(config.state);
 		}
 

@@ -23,7 +23,8 @@ export {
 	throttle,
 	isEqual,
 	find,
-	map
+	map,
+	union
 } from "lodash";
 
 export function interval(ms:number) {

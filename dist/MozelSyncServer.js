@@ -104,11 +104,16 @@ export default class MozelSyncServer {
         }).catch(log.error);
     }
     handlePush(socket, commits) {
-        log.log(`Received commits from client '${socket.id}':`, Object.keys(commits));
+        log.log(`Received commits from client '${socket.id}':`, Object.keys(commits), commits);
         try {
             const merged = this.sync.merge(commits);
-            log.log(`Pushing merged commit from client '${socket.id}' to all clients:`, Object.keys(commits));
-            socket.broadcast.emit('push', merged); // send merged update to others
+            this.onPush(commits, socket);
+            log.log(`Pushing merged commit from client '${socket.id}' to all clients:`, Object.keys(commits), merged);
+            this.io.emit('push', merged); // send merged update to all clients, including sender.
+            /*
+                We send back to sender as well because they might have received a full state, just after they sent this
+                update, in which case the update would be lost for them.
+            */
         }
         catch (e) {
             log.error(e);
@@ -119,12 +124,12 @@ export default class MozelSyncServer {
         }
     }
     handleFullState(socket, state) {
-        log.log(`Received full state from client '${socket.id}.'`);
+        log.log(`Received full state from client '${socket.id}.'`, state);
         try {
             this.sync.setFullState(state);
-            this.onFullStateUpdate(state);
+            this.onFullStateUpdate(state, socket);
             log.log(`Sending full state from client '${socket.id} to all clients.'`);
-            socket.broadcast.emit('full-state', state);
+            this.io.emit('full-state', state);
         }
         catch (e) {
             log.error(e);
@@ -136,7 +141,10 @@ export default class MozelSyncServer {
     onUserDisconnected(id) {
         // For override
     }
-    onFullStateUpdate(state) {
+    onFullStateUpdate(state, socket) {
+        // For override
+    }
+    onPush(commits, socket) {
         // For override
     }
     destroy() {

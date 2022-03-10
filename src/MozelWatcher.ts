@@ -2,7 +2,7 @@ import {v4 as uuid} from "uuid";
 import EventInterface from "event-interface-mixin";
 import Log from "log-control";
 import {alphanumeric, isPrimitive} from "validation-kit";
-import {call, findAllValuesDeep, forEach, get, isArray, isPlainObject} from "./utils";
+import {call, findAllValuesDeep, forEach, get, isArray, isPlainObject, union} from "./utils";
 import PropertyWatcher from "mozel/dist/PropertyWatcher";
 import Mozel, {Collection} from "mozel";
 import {shallow} from "mozel/dist/Mozel";
@@ -47,9 +47,11 @@ export class MozelWatcher {
 	private stopCallbacks:Function[] = [];
 
 	private priority:number;
-	private version:number = 0;
 	private historyMaxLength:number;
 	private history:Commit[] = [];
+	private _version:number = 0;
+	get version() { return this._version; }
+
 	get historyMinBaseVersion() {
 		return !this.history.length ? 0 : this.history[0].baseVersion;
 	}
@@ -105,8 +107,8 @@ export class MozelWatcher {
 		gids.forEach(value => this.modelsInUpdates.add(value));
 
 		// Update version
-		const version = Math.max(commit.version, this.version);
-		this.version = version;
+		const version = Math.max(commit.version, this._version);
+		this._version = version;
 
 		// Create merge commit, add to history and clean history
 		const merged = {...commit, changes, priority: this.priority, version};
@@ -123,7 +125,7 @@ export class MozelWatcher {
 		this.active = false;
 		this.model.$setData(commit.changes);
 		this.active = true;
-		this.version = commit.version;
+		this._version = commit.version;
 	}
 
 	overrideChangesFromHistory(update:Commit) {
@@ -133,11 +135,12 @@ export class MozelWatcher {
 		this.history.forEach(history => {
 			// Any update with a higher base version than the received update should override the received update
 			if(history.baseVersion + priorityAdvantage > update.baseVersion) {
+				log.warn(`Merge conflicts: ${union(Object.keys(changes), Object.keys(history.changes))}`);
 				changes = this.removeChanges(changes, history.changes);
 			}
 		});
 		// Also resolve current conflicting changes
-		if(this.version + priorityAdvantage > update.baseVersion) {
+		if(this._version + priorityAdvantage > update.baseVersion) {
 			changes = this.removeChanges(changes, this.changes);
 		}
 		return changes;
@@ -179,8 +182,8 @@ export class MozelWatcher {
 	createUpdateInfo():Commit {
 		return {
 			syncID: this.syncID,
-			version: this.version,
-			baseVersion: this.version,
+			version: this._version,
+			baseVersion: this._version,
 			priority: this.priority,
 			changes: {}
 		};
@@ -223,7 +226,7 @@ export class MozelWatcher {
 		if(!Object.keys(update.changes).length) {
 			return;
 		}
-		this.version = update.version;
+		this._version = update.version;
 
 		this.history.push(update);
 		this.clearChanges();

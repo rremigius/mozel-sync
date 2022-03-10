@@ -32,9 +32,10 @@ export declare class MozelWatcher {
     private modelsInUpdates;
     private stopCallbacks;
     private priority;
-    private version;
     private historyMaxLength;
     private history;
+    private _version;
+    get version(): number;
     get historyMinBaseVersion(): number;
     get lastUpdate(): Commit | undefined;
     syncID: string;

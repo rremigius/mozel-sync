@@ -78,14 +78,14 @@ export default class MozelSyncClient {
         });
         socket.on('push', commits => {
             for (let gid of Object.keys(commits)) {
-                // Exclude own commits
-                if (commits[gid].syncID === this.sync.id) {
+                // Exclude own commits, except when the version is higher than our own (in case we sent an update just before we received a full state)
+                if (commits[gid].syncID === this.sync.id && !(commits[gid].version > this.sync.getWatcher(gid).version)) {
                     delete commits[gid];
                 }
             }
             if (!Object.keys(commits).length)
                 return;
-            log.info(`Received new commits:`, Object.keys(commits));
+            log.info(`Received new commits:`, Object.keys(commits), commits);
             this.sync.merge(commits);
             // log.log(`Changes merged. New model:`, this.sync.model);
         });
@@ -99,7 +99,7 @@ export default class MozelSyncClient {
             this.onMessageReceived(message);
         });
         this.disconnectCallbacks.push(this.sync.events.newCommits.on(event => {
-            log.info(`Pushing new commits:`, Object.keys(event.commits));
+            log.info(`Pushing new commits:`, Object.keys(event.commits), event.commits);
             socket.emit('push', event.commits);
         }));
     }

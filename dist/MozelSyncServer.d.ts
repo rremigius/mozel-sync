@@ -42,6 +42,7 @@ export default class MozelSyncServer {
     handleFullState(socket: Socket, state: Record<alphanumeric, Commit>): void;
     onUserConnected(id: string): void;
     onUserDisconnected(id: string): void;
-    onFullStateUpdate(state: Record<string, Commit>): void;
+    onFullStateUpdate(state: Record<string, Commit>, socket: Socket): void;
+    onPush(commits: Record<alphanumeric, Commit>, socket: Socket): void;
     destroy(): void;
 }
