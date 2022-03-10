@@ -8,7 +8,10 @@ export declare class ServerDestroyedEvent {
 }
 export declare class ServerEmptyEvent {
 }
+export declare class UserConnectedEvent {
+}
 export declare class MozelSyncServerEvents extends EventInterface {
+    userConnected: import("event-interface-mixin").EventEmitter<UserConnectedEvent>;
     destroyed: import("event-interface-mixin").EventEmitter<ServerDestroyedEvent>;
     empty: import("event-interface-mixin").EventEmitter<ServerEmptyEvent>;
 }

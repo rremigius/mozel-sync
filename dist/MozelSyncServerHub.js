@@ -12,6 +12,7 @@ export default class MozelSyncServerHub {
     Factory;
     RootModel;
     useClientModel;
+    sessionEmptyDestroyTimeout;
     servers = {};
     constructor(options) {
         const $options = options || {};
@@ -19,6 +20,9 @@ export default class MozelSyncServerHub {
         this.RootModel = $options.RootModel || Mozel;
         this.port = isNumber($options.io) ? $options.io : 3000;
         this.useClientModel = $options.useClientModel === true;
+        this.sessionEmptyDestroyTimeout = isNumber($options.sessionEmptyDestroyTimeout)
+            ? $options.sessionEmptyDestroyTimeout
+            : 10000;
         if ($options.io instanceof Server) {
             this.io = $options.io;
             this.isDefaultIO = false;
@@ -47,7 +51,17 @@ export default class MozelSyncServerHub {
         }
         this.servers[id] = server;
         server.start();
-        server.events.empty.on(() => this.destroySession(id, namespace));
+        server.events.empty.on(() => {
+            // Start timeout to destroy session
+            const timeout = setTimeout(() => {
+                this.destroySession(id, namespace);
+            }, this.sessionEmptyDestroyTimeout);
+            // Cancel destruction if someone joins before that time
+            const handler = server.events.userConnected.on(() => {
+                clearTimeout(timeout);
+                server.events.userConnected.off(handler);
+            });
+        });
         this.onSessionCreated(model, { id });
         return { id };
     }

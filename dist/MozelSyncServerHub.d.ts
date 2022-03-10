@@ -11,12 +11,14 @@ export default class MozelSyncServerHub {
     readonly Factory: typeof MozelFactory;
     readonly RootModel: typeof Mozel;
     readonly useClientModel: boolean;
+    readonly sessionEmptyDestroyTimeout: number;
     private servers;
     constructor(options?: {
         io?: Server | number;
         Factory?: typeof MozelFactory;
         RootModel?: typeof Mozel;
         useClientModel?: boolean;
+        sessionEmptyDestroyTimeout?: number;
     });
     createSessionModel(id: string, data?: Data): Mozel;
     getServer(session: string): MozelSyncServer;

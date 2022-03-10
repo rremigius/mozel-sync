@@ -10,7 +10,9 @@ const log = Log.instance("mozel-sync-server");
 
 export class ServerDestroyedEvent {}
 export class ServerEmptyEvent {}
+export class UserConnectedEvent {}
 export class MozelSyncServerEvents extends EventInterface {
+	userConnected = this.$event(UserConnectedEvent);
 	destroyed = this.$event(ServerDestroyedEvent);
 	empty = this.$event(ServerEmptyEvent);
 }
@@ -95,7 +97,7 @@ export default class MozelSyncServer {
 	}
 
 	logCommits(commits:Record<string, Commit>) {
-		if(Object.keys(commits).length < 5) {
+		if(Object.keys(commits).length <= 5) {
 			return commits;
 		} else {
 			return Object.keys(commits);
@@ -117,6 +119,8 @@ export default class MozelSyncServer {
 
 		log.log(`Sending full state to ${socket.id}.`);
 		socket.emit('full-state', this.sync.createFullState());
+
+		this.events.userConnected.fire(new UserConnectedEvent());
 
 		this.onUserConnected(id);
 	}
