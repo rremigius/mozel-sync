@@ -132,7 +132,7 @@ export class MozelWatcher {
 		const priorityAdvantage = this.priority > update.priority ? 1 : 0;
 
 		this.history.forEach(history => {
-			// Any update with a higher base version than the received update should override the received update
+			// Any update with a higher version than the received update should override the received update
 			if(history.version + priorityAdvantage > update.version) {
 				log.warn(`Merge conflicts: ${union(Object.keys(changes), Object.keys(history.changes))}`);
 				changes = this.removeChanges(changes, history.changes);
