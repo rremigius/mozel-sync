@@ -20,7 +20,6 @@ export type Commit = {
 	syncID:string;
 	version:number;
 	priority:number;
-	baseVersion:number;
 	changes:Changes;
 }
 
@@ -52,8 +51,8 @@ export class MozelWatcher {
 	private _version:number = 0;
 	get version() { return this._version; }
 
-	get historyMinBaseVersion() {
-		return !this.history.length ? 0 : this.history[0].baseVersion;
+	get historyMinVersion() {
+		return !this.history.length ? 0 : this.history[0].version;
 	}
 	get lastUpdate():Commit|undefined {
 		if(!this.history.length) return;
@@ -98,9 +97,9 @@ export class MozelWatcher {
 	 * @param commit
 	 */
 	merge(commit:Commit):Commit {
-		if(commit.baseVersion < this.historyMinBaseVersion) {
+		if(commit.version < this.historyMinVersion) {
 			// We cannot apply changes from before our history, as it would overwrite anything already committed.
-			throw new OutdatedUpdateError(commit.baseVersion, this.historyMinBaseVersion);
+			throw new OutdatedUpdateError(commit.version, this.historyMinVersion);
 		}
 		const changes = this.overrideChangesFromHistory(commit);
 		const gids = findAllValuesDeep(changes, (value, key) => key === 'gid');
@@ -134,13 +133,13 @@ export class MozelWatcher {
 
 		this.history.forEach(history => {
 			// Any update with a higher base version than the received update should override the received update
-			if(history.baseVersion + priorityAdvantage > update.baseVersion) {
+			if(history.version + priorityAdvantage > update.version) {
 				log.warn(`Merge conflicts: ${union(Object.keys(changes), Object.keys(history.changes))}`);
 				changes = this.removeChanges(changes, history.changes);
 			}
 		});
 		// Also resolve current conflicting changes
-		if(this._version + priorityAdvantage > update.baseVersion) {
+		if(this._version + priorityAdvantage > update.version) {
 			changes = this.removeChanges(changes, this.changes);
 		}
 		return changes;
@@ -183,7 +182,6 @@ export class MozelWatcher {
 		return {
 			syncID: this.syncID,
 			version: this._version,
-			baseVersion: this._version,
 			priority: this.priority,
 			changes: {}
 		};
