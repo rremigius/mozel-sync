@@ -16,6 +16,9 @@ export default class MozelSyncClient {
     get connecting(): Promise<unknown>;
     private _state;
     get state(): State;
+    private _initialStateReceived;
+    private _receivingInitialStatePromiseCallbacks;
+    private _receivingInitialState;
     private _isSessionOwner;
     get isSessionOwner(): boolean;
     private _session?;
@@ -32,7 +35,7 @@ export default class MozelSyncClient {
     start(): Promise<void>;
     message(payload: any): void;
     onMessageReceived(payload: unknown): void;
-    sendFullState(): void;
+    onInitialState(): void;
     connect(url?: string): Promise<unknown>;
     disconnect(callOnDisconnected?: boolean): void;
     onConnected(id: string): void;

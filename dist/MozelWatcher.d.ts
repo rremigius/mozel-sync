@@ -8,10 +8,10 @@ export declare class OutdatedUpdateError extends Error {
     constructor(baseVersion: number, requiredVersion: number);
 }
 export declare type Commit = {
+    uuid: string;
     syncID: string;
     version: number;
     priority: number;
-    baseVersion: number;
     changes: Changes;
 };
 export declare class MozelWatcherChangedEvent {
@@ -34,9 +34,10 @@ export declare class MozelWatcher {
     private priority;
     private historyMaxLength;
     private history;
+    private historyByUuid;
     private _version;
     get version(): number;
-    get historyMinBaseVersion(): number;
+    get historyMinVersion(): number;
     get lastUpdate(): Commit | undefined;
     syncID: string;
     readonly events: MozelWatcherEvents;
@@ -60,9 +61,7 @@ export declare class MozelWatcher {
      */
     merge(commit: Commit): Commit;
     setFullState(commit: Commit): void;
-    overrideChangesFromHistory(update: Commit): {
-        [x: string]: any;
-    };
+    overrideChangesFromHistory(update: Commit): Commit;
     /**
      *
      * @param {Changes} changes
