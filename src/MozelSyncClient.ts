@@ -28,6 +28,13 @@ export default class MozelSyncClient {
 	private _state:State = State.DISCONNECTED;
 	get state() { return this._state };
 
+	private _initialStateReceived = false;
+	private _receivingInitialStatePromiseCallbacks = {resolve:()=>{}, reject:(err:Error)=>{}};
+	private _receivingInitialState = new Promise<void>((resolve, reject) => {
+		this._receivingInitialStatePromiseCallbacks.resolve = resolve;
+		this._receivingInitialStatePromiseCallbacks.reject = reject;
+	});
+
 	private _isSessionOwner:boolean = false;
 	get isSessionOwner() { return this._isSessionOwner };
 
@@ -99,7 +106,13 @@ export default class MozelSyncClient {
 		socket.on('full-state', state => {
 			log.info(`Received full state from server.`, state);
 			this.sync.setFullState(state);
-			// log.log(`New state:`, this.sync.model);
+
+			if(!this._initialStateReceived) {
+				log.info(`Initial state received.`);
+				this._initialStateReceived = true;
+				this._receivingInitialStatePromiseCallbacks.resolve();
+				this.onInitialState();
+			}
 		});
 		socket.on('message', message => {
 			log.info("Received message:", message);
@@ -118,8 +131,10 @@ export default class MozelSyncClient {
 	}
 
 	async start() {
+		log.info("Starting MozelSyncClient...");
 		this.sync.start();
 		await this.connect();
+		await this._receivingInitialState;
 		log.info("MozelSyncClient started.");
 	}
 
@@ -131,10 +146,8 @@ export default class MozelSyncClient {
 		// for override
 	}
 
-	sendFullState() {
-		const state = this.sync.createFullState();
-		log.log(`Sending full state to server:`, state);
-		this.io.emit('full-state', state);
+	onInitialState() {
+		// for override
 	}
 
 	connect(url?:string) {

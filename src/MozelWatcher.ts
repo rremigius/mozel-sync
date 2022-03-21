@@ -17,6 +17,7 @@ export class OutdatedUpdateError extends Error {
 	}
 }
 export type Commit = {
+	uuid:string;
 	syncID:string;
 	version:number;
 	priority:number;
@@ -48,6 +49,7 @@ export class MozelWatcher {
 	private priority:number;
 	private historyMaxLength:number;
 	private history:Commit[] = [];
+	private historyByUuid:Record<string, Commit> = {};
 	private _version:number = 0;
 	get version() { return this._version; }
 
@@ -101,21 +103,26 @@ export class MozelWatcher {
 			// We cannot apply changes from before our history, as it would overwrite anything already committed.
 			throw new OutdatedUpdateError(commit.version, this.historyMinVersion);
 		}
-		const changes = this.overrideChangesFromHistory(commit);
-		const gids = findAllValuesDeep(changes, (value, key) => key === 'gid');
+		if(commit.uuid in this.historyByUuid) {
+			// We already have this commit; skip
+			return commit;
+		}
+		const overridden = this.overrideChangesFromHistory(commit);
+		const gids = findAllValuesDeep(overridden, (value, key) => key === 'gid');
 		gids.forEach(value => this.modelsInUpdates.add(value));
 
 		// Update version
-		const version = Math.max(commit.version, this._version);
+		const version = Math.max(overridden.version, this._version);
 		this._version = version;
 
 		// Create merge commit, add to history and clean history
-		const merged = {...commit, changes, priority: this.priority, version};
+		const merged = {...overridden, changes: overridden.changes, priority: this.priority, version};
 		this.history.push(merged);
+		this.historyByUuid[merged.uuid] = merged;
 		this.autoCleanHistory();
 
 		// Update Mozel
-		this.model.$setData(changes, true);
+		this.model.$setData(overridden.changes, true);
 
 		return merged;
 	}
@@ -131,18 +138,27 @@ export class MozelWatcher {
 		let changes = {...update.changes};
 		const priorityAdvantage = this.priority > update.priority ? 1 : 0;
 
-		this.history.forEach(history => {
+		let overridden = false;
+
+		// Go through history and current changes (consider current changes as the last item in history
+		[...this.history, {version: this._version, changes: this.changes}].forEach(history => {
 			// Any update with a higher version than the received update should override the received update
 			if(history.version + priorityAdvantage > update.version) {
-				log.warn(`Merge conflicts: ${union(Object.keys(changes), Object.keys(history.changes))}`);
-				changes = this.removeChanges(changes, history.changes);
+				const common = union(Object.keys(changes), Object.keys(history.changes))
+				if(common.length > 0) {
+					log.warn(`Merge conflicts: ${common}`);
+					changes = this.removeChanges(changes, history.changes);
+					overridden = true;
+				}
 			}
 		});
-		// Also resolve current conflicting changes
-		if(this._version + priorityAdvantage > update.version) {
-			changes = this.removeChanges(changes, this.changes);
+
+		// Return new update object with new uuid
+		if(overridden) {
+			update = {...update, changes};
+			update.uuid = uuid();
 		}
-		return changes;
+		return update;
 	}
 
 	/**
@@ -170,7 +186,11 @@ export class MozelWatcher {
 
 	autoCleanHistory() {
 		if(this.history.length > this.historyMaxLength) {
-			this.history.splice(0, this.history.length - this.historyMaxLength);
+			const deleteCount = this.history.length - this.historyMaxLength;
+			for(let i = 0; i < deleteCount; i++) {
+				delete this.historyByUuid[this.history[i].uuid];
+			}
+			this.history.splice(0, deleteCount);
 		}
 	}
 
@@ -180,6 +200,7 @@ export class MozelWatcher {
 
 	createUpdateInfo():Commit {
 		return {
+			uuid: uuid(),
 			syncID: this.syncID,
 			version: this._version,
 			priority: this.priority,
@@ -227,6 +248,7 @@ export class MozelWatcher {
 		this._version = update.version;
 
 		this.history.push(update);
+		this.historyByUuid[update.uuid] = update;
 		this.clearChanges();
 
 		return update;

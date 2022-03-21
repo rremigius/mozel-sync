@@ -74,41 +74,5 @@ describe("MozelSyncServerHub", () => {
 
 			hub.destroy();
 		});
-		it("with useClientModel:true, if initial model if provided by client, client can start changing it immediately", async () => {
-			class Foo extends Mozel {
-				@string()
-				declare foo?:string;
-			}
-
-			const hub = new MozelSyncServerHub({RootModel: Foo, useClientModel: true});
-			const sessionCreated = new Promise<void>((resolve, reject) => {
-				hub.onSessionCreated = () => {
-					resolve();
-				}
-			});
-
-			hub.start();
-
-			const model = Foo.create<Foo>({gid: 'root', foo: 'abc'});
-			const client = new MozelSyncClient(model, 'http://localhost:3000');
-			const connection = client.start();
-
-			await interval(100);
-			model.foo = 'xyz'; // start changing model before properly connected
-
-			await connection;
-			assert.isString(client.session);
-			const server = hub.getServer(client.session as string);
-
-			await sessionCreated;
-			assert.equal(server.model.$get('foo'), 'abc', `Server has initial client's state`);
-			assert.equal(model.$get('foo'), 'abc', 'Client state is unchanged');
-
-			await interval(100);
-			assert.equal(server.model.$get('foo'), 'xyz', `Server has updated client's state`);
-			assert.equal(model.$get('foo'), 'xyz', `Client's changes are not reverted`);
-
-			hub.destroy();
-		});
 	});
 });
