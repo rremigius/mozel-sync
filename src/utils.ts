@@ -24,7 +24,8 @@ export {
 	isEqual,
 	find,
 	map,
-	union
+	union,
+	pick
 } from "lodash";
 
 export function interval(ms:number) {

@@ -518,18 +518,18 @@ describe("MozelSync", () => {
 			const sync = new MozelSync(root, {syncRegistry: true});
 			sync.merge({
 				'new-gid': {
+					uuid: 'a',
 					syncID: 'foo',
 					priority: 0,
-					baseVersion: 0,
 					version: 1,
 					changes: {
 						name: 'foo'
 					}
 				},
 				'root': {
+					uuid: 'b',
 					syncID: 'foo',
 					priority: 0,
-					baseVersion: 0,
 					version: 1,
 					changes: {
 						foo: {gid: 'new-gid'}

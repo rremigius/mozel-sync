@@ -126,7 +126,6 @@ describe("MozelSyncServer/Client", () => {
 			client2Model.foos.removeIndex(0);
 
 			await interval(server.sync.autoCommit! * 3);
-			console.log("\n\n-------------------------------------------------------\n\n")
 
 			assert.deepEqual(client1Model.$export(), serverModel.$export(), "Server and client1 in sync");
 			assert.deepEqual(client2Model.$export(), serverModel.$export(), "Server and client2 in sync");
@@ -136,7 +135,6 @@ describe("MozelSyncServer/Client", () => {
 			client2Model.foo!.name = 'Root-client2';
 
 			await interval(server.sync.autoCommit! * 3);
-			console.log("\n\n-------------------------------------------------------\n\n")
 
 			assert.deepEqual(client1Model.$export(), serverModel.$export(), "Server and client1 in sync");
 			assert.deepEqual(client2Model.$export(), serverModel.$export(), "Server and client2 in sync");

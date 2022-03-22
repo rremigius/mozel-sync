@@ -2,7 +2,7 @@ import {v4 as uuid} from "uuid";
 import EventInterface from "event-interface-mixin";
 import Log from "log-control";
 import {alphanumeric, isPrimitive} from "validation-kit";
-import {call, findAllValuesDeep, forEach, get, isArray, isPlainObject, union} from "./utils";
+import {call, findAllValuesDeep, forEach, get, isArray, isPlainObject, union, pick} from "./utils";
 import PropertyWatcher from "mozel/dist/PropertyWatcher";
 import Mozel, {Collection} from "mozel";
 import {shallow} from "mozel/dist/Mozel";
@@ -135,30 +135,22 @@ export class MozelWatcher {
 	}
 
 	overrideChangesFromHistory(update:Commit) {
-		let changes = {...update.changes};
+		const override = {...update};
 		const priorityAdvantage = this.priority > update.priority ? 1 : 0;
-
-		let overridden = false;
 
 		// Go through history and current changes (consider current changes as the last item in history
 		[...this.history, {version: this._version, changes: this.changes}].forEach(history => {
 			// Any update with a higher version than the received update should override the received update
 			if(history.version + priorityAdvantage > update.version) {
-				const common = union(Object.keys(changes), Object.keys(history.changes))
+				const common = union(Object.keys(update.changes), Object.keys(history.changes))
 				if(common.length > 0) {
-					log.warn(`Merge conflicts: ${common}`);
-					changes = this.removeChanges(changes, history.changes);
-					overridden = true;
+					log.warn(`Merge conflicts:`, pick(override.changes, common), pick(history.changes, common));
+					override.changes = this.removeChanges(override.changes, history.changes);
 				}
 			}
 		});
 
-		// Return new update object with new uuid
-		if(overridden) {
-			update = {...update, changes};
-			update.uuid = uuid();
-		}
-		return update;
+		return override;
 	}
 
 	/**
