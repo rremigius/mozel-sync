@@ -61,7 +61,13 @@ export declare class MozelWatcher {
      */
     merge(commit: Commit): Commit;
     setFullState(commit: Commit): void;
-    overrideChangesFromHistory(update: Commit): Commit;
+    overrideChangesFromHistory(update: Commit): {
+        uuid: string;
+        syncID: string;
+        version: number;
+        priority: number;
+        changes: Changes;
+    };
     /**
      *
      * @param {Changes} changes
